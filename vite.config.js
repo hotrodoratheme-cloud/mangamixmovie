@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { proxyHlsRequest } from './lib/hlsProxy.js'
 import { proxyMangaImageRequest } from './lib/mangaImageProxy.js'
+import { handleMangadexApiRequest } from './lib/mangadexApiProxy.js'
 import { handleOtruyenChapterRequest } from './lib/otruyenChapterHandler.js'
 
 async function handleApiProxy(req, res, pathname, proxyFn) {
@@ -47,6 +48,9 @@ export default defineConfig({
           }
           if (req.url?.startsWith('/api/manga-image')) {
             return handleApiProxy(req, res, '/api/manga-image', proxyMangaImageRequest)
+          }
+          if (req.url?.startsWith('/api/mangadex')) {
+            return handleMangadexApiRequest(req, res)
           }
           if (req.url?.startsWith('/api/otruyen-chapter')) {
             return handleOtruyenChapterRequest(req, res)

@@ -6,6 +6,9 @@
     "api/manga-image.js": {
       "maxDuration": 30
     },
+    "api/mangadex.js": {
+      "maxDuration": 30
+    },
     "api/hls.js": {
       "maxDuration": 30
     }

@@ -21,22 +21,39 @@ export const MOVIE_LIST_TYPES = [
 
 export const MANGA_API_BASE = 'https://api.mangadex.org'
 
+/** MangaDex chặn CORS từ domain khác — gọi qua serverless trên Vercel/Vite. */
+function proxyMangaApi(url) {
+  return `/api/mangadex?url=${encodeURIComponent(url)}`
+}
+
 export const mangaApi = {
   search: (keyword, limit = 24, offset = 0) =>
-    `${MANGA_API_BASE}/manga?title=${encodeURIComponent(keyword)}&limit=${limit}&offset=${offset}&includes[]=cover_art&order[relevance]=desc`,
+    proxyMangaApi(
+      `${MANGA_API_BASE}/manga?title=${encodeURIComponent(keyword)}&limit=${limit}&offset=${offset}&includes[]=cover_art&order[relevance]=desc`
+    ),
   detail: (id) =>
-    `${MANGA_API_BASE}/manga/${id}?includes[]=cover_art&includes[]=author&includes[]=artist`,
+    proxyMangaApi(
+      `${MANGA_API_BASE}/manga/${id}?includes[]=cover_art&includes[]=author&includes[]=artist`
+    ),
   chapters: (id, limit = 500, offset = 0) =>
-    `${MANGA_API_BASE}/manga/${id}/feed?limit=${limit}&offset=${offset}&translatedLanguage[]=vi&translatedLanguage[]=en&order[chapter]=asc&includes[]=scanlation_group`,
+    proxyMangaApi(
+      `${MANGA_API_BASE}/manga/${id}/feed?limit=${limit}&offset=${offset}&translatedLanguage[]=vi&translatedLanguage[]=en&order[chapter]=asc&includes[]=scanlation_group`
+    ),
   chapterImages: (chapterId) =>
-    `${MANGA_API_BASE}/at-home/server/${chapterId}?forcePort443=true`,
+    proxyMangaApi(`${MANGA_API_BASE}/at-home/server/${chapterId}?forcePort443=true`),
   popular: (limit = 16) =>
-    `${MANGA_API_BASE}/manga?limit=${limit}&availableTranslatedLanguage[]=vi&order[followedCount]=desc&includes[]=cover_art`,
+    proxyMangaApi(
+      `${MANGA_API_BASE}/manga?limit=${limit}&availableTranslatedLanguage[]=vi&order[followedCount]=desc&includes[]=cover_art`
+    ),
   latest: (limit = 16) =>
-    `${MANGA_API_BASE}/manga?limit=${limit}&availableTranslatedLanguage[]=vi&order[latestUploadedChapter]=desc&includes[]=cover_art`,
+    proxyMangaApi(
+      `${MANGA_API_BASE}/manga?limit=${limit}&availableTranslatedLanguage[]=vi&order[latestUploadedChapter]=desc&includes[]=cover_art`
+    ),
   byTag: (tagId, limit = 16) =>
-    `${MANGA_API_BASE}/manga?limit=${limit}&availableTranslatedLanguage[]=vi&includedTags[]=${tagId}&order[followedCount]=desc&includes[]=cover_art`,
-  tags: () => `${MANGA_API_BASE}/manga/tag`,
+    proxyMangaApi(
+      `${MANGA_API_BASE}/manga?limit=${limit}&availableTranslatedLanguage[]=vi&includedTags[]=${tagId}&order[followedCount]=desc&includes[]=cover_art`
+    ),
+  tags: () => proxyMangaApi(`${MANGA_API_BASE}/manga/tag`),
 }
 
 export const MANGA_FEATURED_TAGS = [
