@@ -1,0 +1,17 @@
+{
+  "functions": {
+    "api/otruyen-chapter.js": {
+      "maxDuration": 60
+    },
+    "api/manga-image.js": {
+      "maxDuration": 30
+    },
+    "api/hls.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
