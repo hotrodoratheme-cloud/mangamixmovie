@@ -13,6 +13,11 @@ import {
   bindFavoritesSync,
   onFavoritesChanged,
 } from '@/services/favorites'
+import {
+  requireAuthForFavorite,
+  resolveGuestFavoriteToggle,
+  shouldShowFavoriteActive,
+} from '@/utils/favoriteAccess'
 import { onAuthChange, getSession } from '@/services/auth'
 import { useAuth } from '@/composables/useAuth'
 
@@ -213,31 +218,24 @@ export function useFavorites() {
   function isFavorite(type, itemId) {
     if (!isValidItemId(itemId)) return false
 
-    if (!user.value?.id) {
-      return guestFavorites.isFavorite(type, itemId)
-    }
+    const uid = user.value?.id
+    if (requireAuthForFavorite(uid)) return false
 
-    const uid = user.value.id
     const key = favoriteKey(type, itemId)
 
     if (loadedForUser.value === uid) {
-      return favoriteKeys.value.has(key)
+      return shouldShowFavoriteActive(uid, favoriteKeys.value.has(key))
     }
 
-    return localFavorites.isFavorite(uid, type, itemId)
+    return shouldShowFavoriteActive(uid, localFavorites.isFavorite(uid, type, itemId))
   }
 
   async function toggle(payload) {
     const data = normalizeTogglePayload(payload)
     const { type, itemId, itemName, poster } = data
 
-    if (!user.value?.id) {
-      const wasActive = guestFavorites.isFavorite(type, itemId)
-      if (wasActive) guestFavorites.remove(type, itemId)
-      else guestFavorites.add({ type, itemId, itemName, poster })
-      refreshGuestFavoriteKeys()
-      return { active: !wasActive }
-    }
+    const guestResult = resolveGuestFavoriteToggle(user.value?.id)
+    if (guestResult) return guestResult
 
     await ensureLoaded()
 
