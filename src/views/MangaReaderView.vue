@@ -1,6 +1,6 @@
 <template>
   <div class="reader">
-    <div v-if="loading" class="loading-text">Đang tải chapter...</div>
+    <LoadingSkeleton v-if="loading" variant="list" :count="4" />
     <div v-else-if="error" class="error-text reader-error">{{ error }}</div>
 
     <template v-else>
@@ -29,11 +29,10 @@
         </div>
 
         <main class="chapter-content">
-        <MangaChapterImage
-          v-for="(img, i) in images"
-          :key="`${activeChapterId}-${i}`"
-          :url="img"
-          :alt="`${manga.title} - trang ${i + 1}`"
+        <ChapterImageStack
+          :images="images"
+          :chapter-key="activeChapterId"
+          :title="manga.title"
           @error="onImageError"
         />
 
@@ -95,9 +94,10 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { mangaApi } from '@/config/apis'
-import MangaChapterImage from '@/components/browse/MangaChapterImage.vue'
+import ChapterImageStack from '@/components/reader/ChapterImageStack.vue'
 import MangaStoryHero from '@/components/manga/MangaStoryHero.vue'
 import MangaStoryInfoPanel from '@/components/manga/MangaStoryInfoPanel.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import {
   getMangaTitle,
   getMangaDescription,
@@ -115,6 +115,12 @@ import { buildMangaTagIndex, mangaGenrePath } from '@/utils/mangaTags'
 import { saveHistory } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
 import { useNavBack } from '@/composables/useNavBack'
+import { usePageMeta } from '@/composables/usePageMeta'
+import { useReaderKeyboard } from '@/composables/useReaderKeyboard'
+import {
+  prefetchMangaChapter,
+  takePrefetchedMangaChapter,
+} from '@/utils/chapterPrefetch'
 
 const route = useRoute()
 const router = useRouter()
@@ -130,6 +136,16 @@ const loading = ref(true)
 const error = ref('')
 const skipRoute = ref(false)
 const tagIndex = ref(buildMangaTagIndex([]))
+const pageTitle = computed(() =>
+  manga.value.title ? `${manga.value.title} — Chapter` : 'Đọc truyện',
+)
+usePageMeta(pageTitle)
+
+useReaderKeyboard({
+  onPrev: () => prevChapter(),
+  onNext: () => nextChapter(),
+  onBack: () => goBackToDetail(),
+})
 
 function genreTo(genre) {
   const tag = tagIndex.value.byId[genre.id]
@@ -194,7 +210,8 @@ async function loadChapter(chapterId, index, updateRouteFlag = true) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 
   try {
-    images.value = await fetchChapterImages(axios, resolvedId)
+    const cached = takePrefetchedMangaChapter(resolvedId)
+    images.value = cached || (await fetchChapterImages(axios, resolvedId))
 
     if (!images.value.length) {
       error.value = 'Chapter không có hình ảnh.'
@@ -203,6 +220,11 @@ async function loadChapter(chapterId, index, updateRouteFlag = true) {
 
     recordHistory(row, resolvedId)
     if (updateRouteFlag) updateRoute(resolvedId)
+
+    const nextRow = chapters.value[index + 1]
+    if (nextRow) {
+      prefetchMangaChapter(axios, nextRow.variants?.[0]?.id || nextRow.id)
+    }
   } catch (err) {
     console.error('Chapter load error:', err)
     error.value = 'Không thể tải chapter. Thử nhóm dịch khác hoặc chapter khác.'

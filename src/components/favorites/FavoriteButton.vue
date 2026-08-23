@@ -23,6 +23,7 @@ import { ref, computed } from 'vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useAuthModal } from '@/composables/useAuthModal'
 import { useAuth } from '@/composables/useAuth'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   type: {
@@ -43,13 +44,16 @@ const props = defineProps({
 const { isFavorite, toggle, favoritesRevision } = useFavorites()
 const { openAuth } = useAuthModal()
 const { user } = useAuth()
+const { success } = useToast()
 
 const busy = ref(false)
 
 const active = computed(() => {
   favoritesRevision.value
-  if (!user.value?.id) return false
   if (!props.itemId || props.itemId === 'undefined') return false
+  if (!user.value?.id) {
+    return isFavorite(props.type, props.itemId)
+  }
   return isFavorite(props.type, props.itemId)
 })
 
@@ -72,6 +76,10 @@ async function onClick() {
     const result = await toggle(payload.value)
     if (result?.needsAuth) {
       openAuth(pendingAuthPayload.value)
+      return
+    }
+    if (typeof result?.active === 'boolean') {
+      success(result.active ? 'Đã thêm yêu thích' : 'Đã bỏ yêu thích')
     }
   } finally {
     busy.value = false

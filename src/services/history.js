@@ -30,6 +30,8 @@ function normalizeHistoryRow(item, id = getHistoryEntryId(item)) {
     episode_slug: item.episodeSlug || item.episode_slug || null,
     chapterId: item.chapterId || item.chapter_id || null,
     chapter_id: item.chapterId || item.chapter_id || null,
+    progressSeconds: item.progressSeconds ?? item.progress_seconds ?? 0,
+    progress_seconds: item.progressSeconds ?? item.progress_seconds ?? 0,
     updatedAt: item.updatedAt || item.updated_at || new Date().toISOString(),
     updated_at: item.updatedAt || item.updated_at || new Date().toISOString(),
   }
@@ -144,6 +146,17 @@ export const localHistory = {
     writeStore({ movies: [], manga: [], manga_vn: [] })
     return { movies: [], manga: [], manga_vn: [] }
   },
+}
+
+export function getMovieProgress(itemId) {
+  const id = normalizeItemId(itemId)
+  if (!id) return null
+  const entry = (localHistory.getAll().movies || []).find((item) => getHistoryEntryId(item) === id)
+  if (!entry) return null
+  return {
+    episodeSlug: entry.episodeSlug || entry.episode_slug || '',
+    progressSeconds: Number(entry.progressSeconds ?? entry.progress_seconds ?? 0) || 0,
+  }
 }
 
 export async function fetchCloudHistory(userId) {

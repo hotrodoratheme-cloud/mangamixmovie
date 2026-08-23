@@ -37,6 +37,11 @@ async function handleApiProxy(req, res, pathname, proxyFn) {
 
 export default defineConfig({
   base: '/',
+  test: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   plugins: [
     vue(),
     {

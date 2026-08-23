@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import HistoryView from '@/views/HistoryView.vue'
+import { setPageTitle } from '@/composables/usePageMeta'
 
 const routes = [
   {
@@ -29,6 +29,7 @@ const routes = [
       {
         path: 'phim',
         name: 'movie-search',
+        meta: { title: 'Phim' },
         component: () => import('@/views/MovieSearchView.vue'),
       },
       {
@@ -58,6 +59,7 @@ const routes = [
       {
         path: 'truyen-vn',
         name: 'truyen-vn-search',
+        meta: { title: 'Truyện VN' },
         component: () => import('@/views/TruyenVnSearchView.vue'),
       },
       {
@@ -87,16 +89,19 @@ const routes = [
       {
         path: 'truyen',
         name: 'manga-search',
+        meta: { title: 'Truyện MangaDex' },
         component: () => import('@/views/MangaSearchView.vue'),
       },
       {
         path: 'lich-su',
         name: 'history',
-        component: HistoryView,
+        meta: { title: 'Lịch sử' },
+        component: () => import('@/views/HistoryView.vue'),
       },
       {
         path: 'tai-khoan',
         name: 'account',
+        meta: { title: 'Tài khoản' },
         component: () => import('@/views/AccountView.vue'),
       },
       {
@@ -134,6 +139,7 @@ router.onError((error, to) => {
 
 router.afterEach((to) => {
   sessionStorage.removeItem(`chunk-reload:${to.fullPath}`)
+  setPageTitle(to.meta?.title || '')
 })
 
 export default router

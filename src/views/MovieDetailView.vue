@@ -1,6 +1,6 @@
 <template>
   <div class="movie-page">
-    <div v-if="loading" class="loading-text">Đang tải phim...</div>
+    <LoadingSkeleton v-if="loading" variant="hero" :count="1" />
     <div v-else-if="error" class="error-text">{{ error }}</div>
 
     <template v-else-if="movie">
@@ -100,8 +100,10 @@ import { movieApi } from '@/config/apis'
 import { buildImageMovieUrl } from '@/utils/mediaHelper'
 import { getHlsCandidates, getEmbedUrl } from '@/utils/streamHelper'
 import { getMovieApiErrorMessage, MOVIE_LOAD_ERROR } from '@/utils/apiErrors'
-import { saveHistory } from '@/services/history'
+import { saveHistory, getMovieProgress } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
+import { usePageMeta } from '@/composables/usePageMeta'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import FavoriteButton from '@/components/favorites/FavoriteButton.vue'
 
 import { useNavBack } from '@/composables/useNavBack'
@@ -131,6 +133,11 @@ let fetchSeq = 0
 let playSeq = 0
 
 const isPlaying = computed(() => !!currentEpisode.value)
+const pageTitle = computed(() => movie.value?.name || '')
+usePageMeta(pageTitle)
+
+let progressTimer = null
+let lastSavedProgress = 0
 
 function scrollToPlayer() {
   nextTick(() => {
@@ -142,6 +149,10 @@ function scrollToPlayer() {
 
 function cleanup() {
   const video = videoRef.value
+  if (progressTimer) {
+    clearInterval(progressTimer)
+    progressTimer = null
+  }
   if (video) {
     if (onEnded) video.removeEventListener('ended', onEnded)
     video.onerror = null
@@ -248,7 +259,7 @@ function switchEmbed(ep) {
   embedSrc.value = getEmbedUrl(ep)
 }
 
-function recordHistory(ep) {
+function recordHistory(ep, progressSeconds = 0) {
   saveHistory(user.value?.id, {
     type: 'movie',
     itemId: route.params.slug,
@@ -256,7 +267,32 @@ function recordHistory(ep) {
     poster: movie.value?.poster,
     episodeSlug: ep.slug,
     episodeName: ep.name,
+    progressSeconds,
   })
+}
+
+function attachProgressTracking(video, ep) {
+  if (progressTimer) clearInterval(progressTimer)
+  progressTimer = setInterval(() => {
+    if (!video || video.paused) return
+    const seconds = Math.floor(video.currentTime || 0)
+    if (seconds < 5 || Math.abs(seconds - lastSavedProgress) < 10) return
+    lastSavedProgress = seconds
+    recordHistory(ep, seconds)
+  }, 10000)
+}
+
+function tryResumePlayback(video, ep) {
+  const saved = getMovieProgress(route.params.slug)
+  if (!saved || saved.episodeSlug !== ep.slug || saved.progressSeconds < 15) return
+
+  const seek = () => {
+    if (video.duration && saved.progressSeconds >= video.duration - 15) return
+    video.currentTime = saved.progressSeconds
+  }
+
+  if (video.readyState >= 1) seek()
+  else video.addEventListener('loadedmetadata', seek, { once: true })
 }
 
 function loadVideo(ep) {
@@ -301,6 +337,8 @@ function loadVideo(ep) {
         video.src = url
         video.play().catch(onFatal)
         video.onerror = onFatal
+        tryResumePlayback(video, ep)
+        attachProgressTracking(video, ep)
         return
       }
 
@@ -313,7 +351,11 @@ function loadVideo(ep) {
         })
         hls.loadSource(url)
         hls.attachMedia(video)
-        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(onFatal))
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          tryResumePlayback(video, ep)
+          attachProgressTracking(video, ep)
+          video.play().catch(onFatal)
+        })
         hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) onFatal() })
         return
       }

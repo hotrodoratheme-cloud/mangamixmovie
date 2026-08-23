@@ -18,7 +18,7 @@
         <button class="btn btn-ghost btn-sm" @click="clearSearch">✕ Xóa tìm kiếm</button>
       </div>
 
-      <div v-if="loading" class="loading-text">Đang tìm phim...</div>
+      <LoadingSkeleton v-if="loading" variant="grid" :count="8" />
       <div v-else-if="error" class="error-text">{{ error }}</div>
       <div v-else-if="results.length" class="update-grid">
         <PosterCard
@@ -43,10 +43,17 @@
     <template v-else>
       <FeaturedSpotlight :item="featured" :side-items="sideItems" />
 
-      <div v-if="homeLoading" class="loading-text">Đang tải danh mục...</div>
+      <div v-if="homeLoading" class="container">
+        <LoadingSkeleton variant="grid" :count="8" />
+      </div>
       <div v-else-if="homeError" class="error-text">{{ homeError }}</div>
 
       <div v-else class="container home-sections">
+        <ContinueSection
+          scope="movie"
+          title="Tiếp tục xem phim"
+          :see-all-to="{ path: '/lich-su' }"
+        />
         <UpdateGrid
           v-if="updateItems.length"
           title="Mới cập nhật"
@@ -77,6 +84,8 @@ import FeaturedSpotlight from '@/components/browse/FeaturedSpotlight.vue'
 import UpdateGrid from '@/components/browse/UpdateGrid.vue'
 import MediaRow from '@/components/browse/MediaRow.vue'
 import PosterCard from '@/components/browse/PosterCard.vue'
+import ContinueSection from '@/components/browse/ContinueSection.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import { MOVIE_LIST_TYPES } from '@/config/apis'
 import {
   mapMovieItem,

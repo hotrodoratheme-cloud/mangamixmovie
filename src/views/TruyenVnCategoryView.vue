@@ -33,7 +33,7 @@
       </div>
     </header>
 
-    <div v-if="loading" class="loading-text">Đang tải...</div>
+    <LoadingSkeleton v-if="loading" variant="grid" :count="12" />
     <div v-else-if="error" class="error-text">{{ error }}</div>
 
     <template v-else>
@@ -61,6 +61,7 @@ import axios from 'axios'
 import PosterGrid from '@/components/browse/PosterGrid.vue'
 import BrowseCategorySection from '@/components/browse/BrowseCategorySection.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import {
   OTRUYEN_LIST_TYPES,
   OTRUYEN_FEATURED_GENRES,

@@ -56,6 +56,10 @@
 
     <NavBackButton />
 
+    <BottomNav />
+
+    <ToastHost />
+
     <AuthModal v-if="showAuth" @close="onAuthClose" @success="onAuthSuccess" />
   </div>
 </template>
@@ -71,6 +75,8 @@ import AuthModal from '@/components/auth/AuthModal.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import BackToTop from '@/components/layout/BackToTop.vue'
 import NavBackButton from '@/components/layout/NavBackButton.vue'
+import BottomNav from '@/components/layout/BottomNav.vue'
+import ToastHost from '@/components/ui/ToastHost.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -362,6 +368,12 @@ function onSearch() {
 
 .main {
   flex: 1;
+}
+
+@media (max-width: 1024px) {
+  .main {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
 }
 
 @media (max-width: 1024px) {

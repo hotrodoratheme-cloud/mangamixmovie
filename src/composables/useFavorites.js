@@ -2,6 +2,8 @@ import { ref, readonly } from 'vue'
 import {
   favoriteKey,
   localFavorites,
+  guestFavorites,
+  mergeGuestFavoritesIntoUser,
   fetchCloudFavorites,
   syncLocalStoreWithCloud,
   addFavorite,
@@ -15,6 +17,7 @@ import { onAuthChange, getSession } from '@/services/auth'
 import { useAuth } from '@/composables/useAuth'
 
 const favoriteKeys = ref(new Set())
+const guestFavoriteKeys = ref(new Set())
 const favoritesRevision = ref(0)
 const loadedForUser = ref(null)
 const loaded = ref(false)
@@ -57,8 +60,18 @@ function buildKeysFromCloud(cloud) {
   return keys
 }
 
+function buildKeysFromGuestStore(store) {
+  return buildKeysFromStore(store)
+}
+
+function refreshGuestFavoriteKeys() {
+  guestFavoriteKeys.value = buildKeysFromGuestStore(guestFavorites.getAll())
+  favoritesRevision.value += 1
+}
+
 function resetFavoritesState() {
   favoriteKeys.value = new Set()
+  guestFavoriteKeys.value = buildKeysFromGuestStore(guestFavorites.getAll())
   loadedForUser.value = null
   loaded.value = false
   loadingPromise = null
@@ -120,6 +133,8 @@ async function loadFavorites(userId) {
 
   loadingPromise = (async () => {
     try {
+      await mergeGuestFavoritesIntoUser(userId)
+
       let cloud = null
       let cloudOk = false
       try {
@@ -176,6 +191,7 @@ function initAuthBinding() {
 }
 
 initAuthBinding()
+refreshGuestFavoriteKeys()
 
 function normalizeTogglePayload(payload) {
   return {
@@ -195,7 +211,11 @@ export function useFavorites() {
   }
 
   function isFavorite(type, itemId) {
-    if (!user.value?.id || !isValidItemId(itemId)) return false
+    if (!isValidItemId(itemId)) return false
+
+    if (!user.value?.id) {
+      return guestFavorites.isFavorite(type, itemId)
+    }
 
     const uid = user.value.id
     const key = favoriteKey(type, itemId)
@@ -212,7 +232,11 @@ export function useFavorites() {
     const { type, itemId, itemName, poster } = data
 
     if (!user.value?.id) {
-      return { needsAuth: true, payload: data }
+      const wasActive = guestFavorites.isFavorite(type, itemId)
+      if (wasActive) guestFavorites.remove(type, itemId)
+      else guestFavorites.add({ type, itemId, itemName, poster })
+      refreshGuestFavoriteKeys()
+      return { active: !wasActive }
     }
 
     await ensureLoaded()
@@ -305,6 +329,7 @@ export function useFavorites() {
 
   return {
     favoriteKeys: readonly(favoriteKeys),
+    guestFavoriteKeys: readonly(guestFavoriteKeys),
     favoritesRevision: readonly(favoritesRevision),
     ensureLoaded,
     isFavorite,

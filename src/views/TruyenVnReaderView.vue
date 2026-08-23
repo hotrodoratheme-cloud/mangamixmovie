@@ -1,6 +1,6 @@
 <template>
   <div class="reader">
-    <div v-if="pageLoading" class="loading-text">Đang tải truyện...</div>
+    <LoadingSkeleton v-if="pageLoading" variant="list" :count="4" />
     <div v-else-if="pageError" class="error-text reader-error">{{ pageError }}</div>
 
     <template v-else>
@@ -18,7 +18,7 @@
         </template>
       </MangaStoryHero>
 
-      <div v-if="chapterLoading" class="loading-text">Đang tải chapter...</div>
+      <LoadingSkeleton v-if="chapterLoading" variant="list" :count="3" />
       <div v-else-if="error" class="error-box">
         <p class="error-text reader-error">{{ error }}</p>
         <button class="btn btn-primary btn-sm" type="button" @click="retryChapter">
@@ -37,11 +37,10 @@
         </div>
 
         <main v-if="images.length" class="chapter-content">
-          <MangaChapterImage
-            v-for="(img, i) in images"
-            :key="`${activeChapterId}-${i}`"
-            :url="img"
-            :alt="`${manga.title} - trang ${i + 1}`"
+          <ChapterImageStack
+            :images="images"
+            :chapter-key="activeChapterId"
+            :title="manga.title"
             @error="onImageError"
           />
 
@@ -104,9 +103,10 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
-import MangaChapterImage from '@/components/browse/MangaChapterImage.vue'
+import ChapterImageStack from '@/components/reader/ChapterImageStack.vue'
 import MangaStoryHero from '@/components/manga/MangaStoryHero.vue'
 import MangaStoryInfoPanel from '@/components/manga/MangaStoryInfoPanel.vue'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import { fetchOtruyenDetail, mapOtruyenDetailMeta } from '@/utils/otruyenMapper'
 import {
   buildOtruyenChapterCatalog,
@@ -117,6 +117,12 @@ import {
 import { saveHistory } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
 import { useNavBack } from '@/composables/useNavBack'
+import { usePageMeta } from '@/composables/usePageMeta'
+import { useReaderKeyboard } from '@/composables/useReaderKeyboard'
+import {
+  prefetchOtruyenChapter,
+  takePrefetchedOtruyenChapter,
+} from '@/utils/chapterPrefetch'
 
 const route = useRoute()
 const router = useRouter()
@@ -133,6 +139,17 @@ const chapterLoading = ref(false)
 const pageError = ref('')
 const error = ref('')
 const skipRoute = ref(false)
+
+const pageTitle = computed(() =>
+  manga.value.title ? `${manga.value.title} — Chapter` : 'Đọc truyện VN',
+)
+usePageMeta(pageTitle)
+
+useReaderKeyboard({
+  onPrev: () => prevChapter(),
+  onNext: () => nextChapter(),
+  onBack: () => goBackToDetail(),
+})
 
 const currentVariants = computed(() => chapters.value[currentIndex.value]?.variants || [])
 
@@ -196,7 +213,8 @@ async function loadChapter(chapterId, index, updateRouteFlag = true) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 
   try {
-    images.value = await fetchOtruyenChapterImages(axios, resolved.apiUrl)
+    const cached = takePrefetchedOtruyenChapter(resolved.id)
+    images.value = cached || (await fetchOtruyenChapterImages(axios, resolved.apiUrl))
 
     if (!images.value.length) {
       error.value = 'Chapter không có hình ảnh.'
@@ -205,6 +223,9 @@ async function loadChapter(chapterId, index, updateRouteFlag = true) {
 
     recordHistory(row, resolved)
     if (updateRouteFlag) updateRoute(resolved.id)
+
+    const nextRow = chapters.value[index + 1]
+    if (nextRow) prefetchOtruyenChapter(axios, nextRow)
   } catch (err) {
     console.error('Chapter load error:', err)
     const apiMsg = err.response?.data?.error

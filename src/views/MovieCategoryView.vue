@@ -50,7 +50,7 @@
       </div>
     </header>
 
-    <div v-if="loading" class="loading-text">Đang tải...</div>
+    <LoadingSkeleton v-if="loading" variant="grid" :count="12" />
     <div v-else-if="error" class="error-text">{{ error }}</div>
     <div v-else-if="!items.length" class="empty-state">Không tìm thấy phim phù hợp bộ lọc.</div>
 
@@ -88,6 +88,7 @@ import {
 } from '@/config/apis'
 import { fetchMovieList, fetchGenreList, fetchGenres, fetchCountries } from '@/utils/movieMapper'
 import { getMovieApiErrorMessage, MOVIE_CATEGORY_ERROR } from '@/utils/apiErrors'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 
 const route = useRoute()
 const router = useRouter()

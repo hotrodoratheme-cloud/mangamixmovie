@@ -1,5 +1,6 @@
 const STORAGE_PREFIX = 'mmx_favorites_v1'
 const LEGACY_STORAGE_KEY = 'mmx_favorites_v1'
+const GUEST_STORAGE_KEY = 'mmx_favorites_guest_v1'
 const SYNC_CHANNEL = 'mmx_favorites_sync_v1'
 
 /** @typedef {'movie' | 'manga' | 'manga_vn'} FavoriteType */
@@ -232,6 +233,103 @@ export const localFavorites = {
     const key = storeKey(type)
     return (store[key] || []).some((i) => getFavoriteEntryId(i) === targetId)
   },
+}
+
+function readGuestStore() {
+  try {
+    return JSON.parse(localStorage.getItem(GUEST_STORAGE_KEY) || JSON.stringify(emptyStore()))
+  } catch {
+    return emptyStore()
+  }
+}
+
+function writeGuestStore(data) {
+  localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(compactStore(data)))
+}
+
+export const guestFavorites = {
+  getAll() {
+    return compactStore(readGuestStore())
+  },
+
+  add(payload) {
+    const store = readGuestStore()
+    const key = storeKey(payload.type)
+    const list = dedupeStoreList(store[key] || [], payload.type)
+    const entry = normalizeEntry(payload)
+    if (!entry.itemId) return store
+    const idx = list.findIndex((i) => getFavoriteEntryId(i) === entry.itemId)
+    if (idx >= 0) list[idx] = entry
+    else list.unshift(entry)
+    store[key] = list
+    writeGuestStore(store)
+    return compactStore(store)
+  },
+
+  remove(type, itemId) {
+    const targetId = normalizeItemId(itemId)
+    if (!targetId) return readGuestStore()
+    const store = readGuestStore()
+    const key = storeKey(type)
+    store[key] = (store[key] || []).filter((i) => getFavoriteEntryId(i) !== targetId)
+    writeGuestStore(store)
+    return compactStore(store)
+  },
+
+  isFavorite(type, itemId) {
+    const targetId = normalizeItemId(itemId)
+    if (!targetId) return false
+    const store = readGuestStore()
+    const key = storeKey(type)
+    return (store[key] || []).some((i) => getFavoriteEntryId(i) === targetId)
+  },
+
+  clearAll() {
+    writeGuestStore(emptyStore())
+    return emptyStore()
+  },
+}
+
+export async function mergeGuestFavoritesIntoUser(userId) {
+  if (!userId) return
+  const guest = guestFavorites.getAll()
+  const hasItems =
+    guest.movies.length || guest.manga.length || guest.manga_vn.length
+  if (!hasItems) return
+
+  for (const item of guest.movies) {
+    await localFavorites.add(userId, { ...item, type: 'movie' })
+  }
+  for (const item of guest.manga) {
+    await localFavorites.add(userId, { ...item, type: 'manga' })
+  }
+  for (const item of guest.manga_vn) {
+    await localFavorites.add(userId, { ...item, type: 'manga_vn' })
+  }
+
+  guestFavorites.clearAll()
+
+  for (const item of guest.movies) {
+    try {
+      await saveCloudFavorite(userId, { ...item, type: 'movie' })
+    } catch {
+      /* local copy already merged */
+    }
+  }
+  for (const item of guest.manga) {
+    try {
+      await saveCloudFavorite(userId, { ...item, type: 'manga' })
+    } catch {
+      /* local copy already merged */
+    }
+  }
+  for (const item of guest.manga_vn) {
+    try {
+      await saveCloudFavorite(userId, { ...item, type: 'manga_vn' })
+    } catch {
+      /* local copy already merged */
+    }
+  }
 }
 
 export function getFavoritesDisplayFromLocal(userId) {
