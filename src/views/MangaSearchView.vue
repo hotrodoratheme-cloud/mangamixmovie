@@ -91,7 +91,13 @@ import ContinueSection from '@/components/browse/ContinueSection.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import { mangaApi, MANGA_FEATURED_TAGS } from '@/config/apis'
-import { fetchMangaList, searchManga } from '@/utils/mangaMapper'
+import { fetchMangaList, fetchMangaTags } from '@/utils/mangaMapper'
+import { getBrowseCategories } from '@/utils/browseCategoryCache'
+import {
+  buildMangaTagIndex,
+  mergeMangaFeaturedAliases,
+  resolveMangaGenreSeeAll,
+} from '@/utils/mangaTags'
 import { useRouteSearch } from '@/composables/useRouteSearch'
 import { useFavorites } from '@/composables/useFavorites'
 import { useAuth } from '@/composables/useAuth'
@@ -158,6 +164,21 @@ async function loadHome() {
   homeError.value = ''
 
   try {
+    const tagCatalog = await getBrowseCategories('manga', async () => {
+      const fetched = await fetchMangaTags(axios).catch(() => [])
+      if (fetched.length) return fetched
+      return MANGA_FEATURED_TAGS.map((t) => ({
+        id: t.id,
+        label: t.label,
+        slug: t.slug,
+      }))
+    })
+    const tagIndex = buildMangaTagIndex(
+      mergeMangaFeaturedAliases(
+        tagCatalog.length ? tagCatalog : MANGA_FEATURED_TAGS,
+        MANGA_FEATURED_TAGS
+      )
+    )
     const featuredTags = MANGA_FEATURED_TAGS.slice(0, 4)
     const [popular, latest, ...tagRows] = await Promise.all([
       fetchMangaList(axios, mangaApi.popular(16), {
@@ -201,7 +222,7 @@ async function loadHome() {
         key: t.id,
         title: t.label,
         items: tagRows[i] || [],
-        seeAllTo: { name: 'manga-genre', params: { slug: t.slug } },
+        seeAllTo: resolveMangaGenreSeeAll(t, tagIndex, tagCatalog),
       })),
     ]
 

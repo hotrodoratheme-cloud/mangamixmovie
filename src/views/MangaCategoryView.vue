@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import PosterGrid from '@/components/browse/PosterGrid.vue'
@@ -58,9 +58,11 @@ import {
   MANGA_STATUS_OPTIONS,
 } from '@/config/apis'
 import { fetchMangaList, fetchMangaTags } from '@/utils/mangaMapper'
+import { getBrowseCategories } from '@/utils/browseCategoryCache'
 import {
   buildMangaTagIndex,
   isMangaTagUuid,
+  mergeMangaFeaturedAliases,
   resolveMangaTagParam,
 } from '@/utils/mangaTags'
 
@@ -81,10 +83,24 @@ const breadcrumbItems = computed(() => [{ label: 'Truyện', to: '/truyen' }])
 
 async function loadTagLabels() {
   try {
-    const tags = await fetchMangaTags(axios)
-    if (tags.length) tagIndex.value = buildMangaTagIndex(tags)
+    const tags = await getBrowseCategories('manga', async () => {
+      const fetched = await fetchMangaTags(axios).catch(() => [])
+      if (fetched.length) return fetched
+      return MANGA_FEATURED_TAGS.map((t) => ({
+        id: t.id,
+        label: t.label,
+        slug: t.slug,
+      }))
+    })
+    const merged = mergeMangaFeaturedAliases(
+      tags.length ? tags : MANGA_FEATURED_TAGS,
+      MANGA_FEATURED_TAGS
+    )
+    tagIndex.value = buildMangaTagIndex(merged)
   } catch {
-    tagIndex.value = buildMangaTagIndex(MANGA_FEATURED_TAGS)
+    tagIndex.value = buildMangaTagIndex(
+      mergeMangaFeaturedAliases(MANGA_FEATURED_TAGS, MANGA_FEATURED_TAGS)
+    )
   }
 }
 
@@ -166,17 +182,13 @@ async function load() {
 
 watch(
   () => [route.name, route.params.slug, route.params.type],
-  () => {
+  async () => {
     resetFiltersForRoute()
-    load()
-  }
+    await loadTagLabels()
+    await load()
+  },
+  { immediate: true }
 )
-
-onMounted(async () => {
-  await loadTagLabels()
-  resetFiltersForRoute()
-  await load()
-})
 </script>
 
 <style scoped>
@@ -256,6 +268,11 @@ onMounted(async () => {
   .header-toolbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+  }
+
+  .header-info {
+    flex: 0 0 auto;
   }
 
   .filter-bar {

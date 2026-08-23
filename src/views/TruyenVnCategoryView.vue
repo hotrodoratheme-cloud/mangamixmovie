@@ -257,6 +257,11 @@ onMounted(async () => {
   .header-toolbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+  }
+
+  .header-info {
+    flex: 0 0 auto;
   }
 
   .filter-bar {

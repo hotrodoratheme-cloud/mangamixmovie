@@ -21,7 +21,7 @@ export function enrichMangaTags(tags = []) {
   const used = new Map()
 
   return tags.map((tag) => {
-    const base = slugifyMangaTag(tag.label) || tag.id
+    const base = tag.slug || slugifyMangaTag(tag.label) || tag.id
     let slug = base
     let suffix = 2
 
@@ -60,7 +60,40 @@ export function resolveMangaTagParam(param, index) {
     return tag || { id: value, label: index.labels[value] || '', slug: value }
   }
 
-  return index.bySlug[value] || null
+  if (index.bySlug[value]) return index.bySlug[value]
+
+  const tags = index.tags || []
+  return (
+    tags.find(
+      (tag) =>
+        tag.slug === value ||
+        slugifyMangaTag(tag.label) === value ||
+        tag.id === value
+    ) || null
+  )
+}
+
+export function mergeMangaFeaturedAliases(tags = [], featured = []) {
+  const merged = [...tags]
+  for (const alias of featured) {
+    merged.push({
+      id: alias.id,
+      label: alias.label,
+      slug: alias.slug,
+    })
+  }
+  return merged
+}
+
+export function resolveMangaGenreSeeAll(tagRef, index, catalog = []) {
+  if (!tagRef) return { name: 'manga-genre', params: { slug: '' } }
+
+  const tag = typeof tagRef === 'string' ? { id: tagRef, slug: tagRef } : tagRef
+  const fromCatalog = catalog.find((entry) => entry.id === tag.id)
+  const fromIndex = index?.byId?.[tag.id]
+  const slug = fromCatalog?.slug || fromIndex?.slug || tag.slug || tag.id
+
+  return { name: 'manga-genre', params: { slug } }
 }
 
 export function mangaGenrePath(tagOrSlug) {

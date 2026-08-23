@@ -327,6 +327,11 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .title-row {
     align-items: stretch;
+    gap: 12px;
+  }
+
+  .title-block {
+    flex: 0 0 auto;
   }
 
   .filter-bar {

@@ -59,7 +59,7 @@
           v-if="updateItems.length"
           title="Mới cập nhật"
           :items="updateItems"
-          :see-all-to="{ path: '/phim/danh-muc/phim-moi-cap-nhat' }"
+          :see-all-to="{ name: 'movie-list', params: { type: 'phim-moi-cap-nhat' } }"
         />
 
         <MediaRow
@@ -68,7 +68,7 @@
           :row-key="row.key"
           :title="row.title"
           :items="row.items"
-          :see-all-to="{ path: `/phim/danh-muc/${row.key}` }"
+          :see-all-to="{ name: 'movie-list', params: { type: row.key } }"
         />
       </div>
     </template>
