@@ -114,11 +114,26 @@ export async function fetchLatestChaptersForMangaIds(axios, mangaIds, options = 
 
 export async function fetchMangaTags(axios) {
   const { mangaApi } = await import('@/config/apis')
-  const { data } = await axios.get(mangaApi.tags())
+  const { MANGA_DISPLAY_TAG_GROUPS } = await import('@/utils/mediaHelper')
+
+  const rawTags = []
+  const pageSize = 100
+  let offset = 0
+
+  while (true) {
+    const { data } = await axios.get(mangaApi.tags({ limit: pageSize, offset }))
+    const batch = data.data || []
+    rawTags.push(...batch)
+
+    const total = Number.isFinite(data.total) ? data.total : batch.length
+    offset += batch.length
+
+    if (!batch.length || offset >= total) break
+  }
 
   return enrichMangaTags(
-    (data.data || [])
-      .filter((tag) => tag.attributes?.group === 'genre')
+    rawTags
+      .filter((tag) => MANGA_DISPLAY_TAG_GROUPS.has(tag.attributes?.group))
       .map((tag) => ({
         id: tag.id,
         label: getTagLabel(tag.attributes),

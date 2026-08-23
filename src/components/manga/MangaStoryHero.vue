@@ -150,18 +150,28 @@ const heroStyle = computed(() => {
 
 .hero-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
-  align-items: center;
+  align-items: stretch;
+  width: 100%;
+  max-width: 560px;
 }
 
 .hero-actions :deep(.btn),
 .hero-actions :deep(.favorite-btn--label) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 42px;
   min-height: 42px;
-  padding: 10px 20px;
+  padding: 0 14px;
   font-size: 0.875rem;
   border-radius: 8px;
   box-sizing: border-box;
+  white-space: nowrap;
+  gap: 6px;
 }
 
 .hero-actions :deep(.favorite-btn--label) {
@@ -198,6 +208,29 @@ const heroStyle = computed(() => {
 @media (max-width: 640px) {
   .genre-links {
     justify-content: flex-start;
+  }
+
+  .hero-actions {
+    gap: 8px;
+    max-width: none;
+  }
+
+  .hero-actions :deep(.btn),
+  .hero-actions :deep(.favorite-btn--label) {
+    padding: 0 8px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
+
+  .hero-actions :deep(.favorite-label) {
+    display: none;
+  }
+
+  .hero-actions :deep(.favorite-btn--label) {
+    flex: 0 0 42px;
+    width: 42px;
+    min-width: 42px;
+    padding: 0;
   }
 }
 </style>

@@ -47,7 +47,8 @@ export function getTagLabel(tagAttributes) {
 }
 
 /** Hiển thị thể loại/chủ đề, bỏ format & content */
-const DISPLAY_TAG_GROUPS = new Set(['genre', 'theme'])
+export const MANGA_DISPLAY_TAG_GROUPS = new Set(['genre', 'theme'])
+const DISPLAY_TAG_GROUPS = MANGA_DISPLAY_TAG_GROUPS
 
 function mapTagEntry(tag, tagLabelMap = {}) {
   const group = tag?.attributes?.group

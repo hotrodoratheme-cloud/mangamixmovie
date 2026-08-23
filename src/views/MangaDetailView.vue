@@ -25,7 +25,7 @@
           </button>
           <button
             v-if="continueChapter"
-            class="btn btn-ghost"
+            class="btn btn-ghost btn-play-inline"
             @click="readChapter(continueChapter)"
           >
             ↪ Tiếp tục đọc
@@ -41,20 +41,6 @@
       </MangaStoryHero>
 
       <div class="container detail-body">
-        <section v-if="manga.genres.length" class="info-block">
-          <h2>Thể loại</h2>
-          <div class="genre-links">
-            <router-link
-              v-for="genre in manga.genres"
-              :key="genre.id"
-              :to="genreTo(genre)"
-              class="genre-link"
-            >
-              {{ genre.label }}
-            </router-link>
-          </div>
-        </section>
-
         <section v-if="manga.description" class="info-block">
           <h2>Nội dung</h2>
           <p class="description">{{ manga.description }}</p>
@@ -257,28 +243,6 @@ onMounted(loadDetail)
   white-space: pre-wrap;
 }
 
-.genre-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.genre-link {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  text-decoration: none;
-  transition: all 0.15s;
-}
-
-.genre-link:hover {
-  background: var(--accent);
-  color: #1a1200;
-}
-
 .chapter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -323,11 +287,5 @@ onMounted(loadDetail)
   background: var(--accent);
   padding: 2px 6px;
   border-radius: 4px;
-}
-
-@media (max-width: 640px) {
-  .info-block .genre-links {
-    justify-content: flex-start;
-  }
 }
 </style>

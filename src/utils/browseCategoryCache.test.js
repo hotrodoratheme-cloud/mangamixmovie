@@ -35,7 +35,7 @@ describe('browseCategoryCache', () => {
 
   it('đọc cache sessionStorage còn hạn', async () => {
     sessionStorage.setItem(
-      'mmx_browse_categories_v1',
+      'mmx_browse_categories_v2',
       JSON.stringify({
         expiresAt: Date.now() + 60_000,
         entries: { movie: [{ id: 'cached' }], manga: null, manga_vn: null },
@@ -52,7 +52,7 @@ describe('browseCategoryCache', () => {
 
   it('bỏ cache sessionStorage hết hạn', async () => {
     sessionStorage.setItem(
-      'mmx_browse_categories_v1',
+      'mmx_browse_categories_v2',
       JSON.stringify({
         expiresAt: Date.now() - 1,
         entries: { movie: [{ id: 'old' }] },

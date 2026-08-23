@@ -104,9 +104,24 @@ async function loadTagLabels() {
   }
 }
 
-function resolveGenreFromRoute() {
+async function resolveGenreFromRoute() {
   const param = route.params.slug
-  const tag = resolveMangaTagParam(param, tagIndex.value)
+  let tag = resolveMangaTagParam(param, tagIndex.value)
+
+  if (!tag?.id) {
+    try {
+      const fresh = await fetchMangaTags(axios)
+      if (fresh.length) {
+        tagIndex.value = buildMangaTagIndex(
+          mergeMangaFeaturedAliases(fresh, MANGA_FEATURED_TAGS)
+        )
+        tag = resolveMangaTagParam(param, tagIndex.value)
+      }
+    } catch {
+      /* giữ lỗi thể loại không hợp lệ bên dưới */
+    }
+  }
+
   if (!tag?.id) return null
 
   if (isMangaTagUuid(param) && tag.slug && tag.slug !== param) {
@@ -154,7 +169,7 @@ async function load() {
     }
 
     if (isGenre.value) {
-      const tag = resolveGenreFromRoute()
+      const tag = await resolveGenreFromRoute()
       if (!tag) {
         error.value = 'Thể loại không hợp lệ.'
         items.value = []

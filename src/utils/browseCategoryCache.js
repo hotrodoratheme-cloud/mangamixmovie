@@ -1,4 +1,4 @@
-const CACHE_STORAGE_KEY = 'mmx_browse_categories_v1'
+const CACHE_STORAGE_KEY = 'mmx_browse_categories_v2'
 const CACHE_TTL_MS = 30 * 60 * 1000
 
 const cache = {

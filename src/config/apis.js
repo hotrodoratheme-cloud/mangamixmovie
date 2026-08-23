@@ -149,7 +149,10 @@ export const mangaApi = {
       order: options.order || 'followedCount',
       status: options.status || '',
     }),
-  tags: () => proxyMangaApi(`${MANGA_API_BASE}/manga/tag`),
+  tags: ({ limit = 500, offset = 0 } = {}) =>
+    proxyMangaApi(
+      `${MANGA_API_BASE}/manga/tag?limit=${limit}&offset=${offset}`
+    ),
 }
 
 export const MANGA_FEATURED_TAGS = [
