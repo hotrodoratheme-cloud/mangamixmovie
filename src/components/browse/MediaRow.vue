@@ -11,7 +11,7 @@
         Xem tất cả →
       </router-link>
     </div>
-    <AppSwiper :id="swiperId" :items="items" />
+    <AppSwiper :id="swiperId" :items="items" :rows="swiperRows" />
   </section>
 </template>
 
@@ -24,6 +24,7 @@ const props = defineProps({
   items: { type: Array, default: () => [] },
   seeAllTo: { type: Object, default: null },
   rowKey: { type: String, default: '' },
+  swiperRows: { type: Number, default: 1 },
 })
 
 const swiperId = computed(() =>

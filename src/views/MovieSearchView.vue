@@ -69,6 +69,7 @@
           :title="row.title"
           :items="row.items"
           :see-all-to="{ name: 'movie-list', params: { type: row.key } }"
+          :swiper-rows="2"
         />
       </div>
     </template>

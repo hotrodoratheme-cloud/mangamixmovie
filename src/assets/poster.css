@@ -256,6 +256,18 @@
   }
 }
 
+.app-swiper-wrap.is-grid-rows .swiper-nav {
+  top: 50%;
+}
+
+.app-swiper-wrap.is-grid-rows .app-swiper {
+  padding-bottom: 16px;
+}
+
+.app-swiper-wrap.is-grid-rows .swiper-slide {
+  height: auto;
+}
+
 .update-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
