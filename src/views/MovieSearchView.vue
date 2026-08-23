@@ -1,14 +1,13 @@
 <template>
   <div class="browse-page">
-    <section class="container browse-top">
+    <BrowseCategorySection media="movie">
       <SearchBar
         v-model="query"
         class="page-search"
         placeholder="Tìm phim theo tên..."
         @search="onSubmitSearch"
       />
-      <CategoryBar :items="genres" @select="onGenreSelect" />
-    </section>
+    </BrowseCategorySection>
 
     <section v-if="showSearchResults" class="container results-section">
       <div class="section-head">
@@ -69,11 +68,10 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SearchBar from '@/components/search/SearchBar.vue'
 import SearchPagination from '@/components/search/SearchPagination.vue'
-import CategoryBar from '@/components/browse/CategoryBar.vue'
+import BrowseCategorySection from '@/components/browse/BrowseCategorySection.vue'
 import FeaturedSpotlight from '@/components/browse/FeaturedSpotlight.vue'
 import UpdateGrid from '@/components/browse/UpdateGrid.vue'
 import MediaRow from '@/components/browse/MediaRow.vue'
@@ -82,7 +80,6 @@ import { MOVIE_LIST_TYPES } from '@/config/apis'
 import {
   mapMovieItem,
   fetchMovieList,
-  fetchGenres,
   searchMovies,
 } from '@/utils/movieMapper'
 import { movieApi } from '@/config/apis'
@@ -90,11 +87,9 @@ import { useRouteSearch } from '@/composables/useRouteSearch'
 import { useFavorites } from '@/composables/useFavorites'
 import { useAuth } from '@/composables/useAuth'
 
-const router = useRouter()
 const { ensureLoaded } = useFavorites()
 const { user, loading: authLoading } = useAuth()
 
-const genres = ref([])
 const results = ref([])
 const rows = ref([])
 const featured = ref(null)
@@ -148,14 +143,11 @@ const swiperRows = computed(() =>
 async function loadHome() {
   homeLoading.value = true
   try {
-    const [genreList, ...listResults] = await Promise.all([
-      fetchGenres(axios).catch(() => []),
+    const [...listResults] = await Promise.all([
       ...MOVIE_LIST_TYPES.map((t) =>
         fetchMovieList(axios, t.key).catch(() => ({ items: [], title: t.label }))
       ),
     ])
-
-    genres.value = genreList
     rows.value = MOVIE_LIST_TYPES.map((t, i) => ({
       key: t.key,
       title: t.label,
@@ -204,10 +196,6 @@ function onSubmitSearch() {
   runSearch()
 }
 
-function onGenreSelect(slug) {
-  if (slug) router.push(`/phim/the-loai/${slug}`)
-}
-
 watch(
   () => [user.value?.id, authLoading.value],
   () => {
@@ -222,14 +210,6 @@ loadHome()
 <style scoped>
 .browse-page {
   padding-bottom: 48px;
-}
-
-.browse-top {
-  padding-top: 16px;
-  padding-bottom: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .page-search {

@@ -1,14 +1,13 @@
 <template>
   <div class="browse-page">
-    <section class="container browse-top">
+    <BrowseCategorySection media="manga">
       <SearchBar
         v-model="query"
         class="page-search"
         placeholder="Tìm truyện theo tên..."
         @search="onSubmitSearch"
       />
-      <CategoryBar :items="tags" @select="onTagSelect" />
-    </section>
+    </BrowseCategorySection>
 
     <section v-if="showSearchResults" class="container results-section">
       <div class="section-head">
@@ -70,29 +69,23 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SearchBar from '@/components/search/SearchBar.vue'
 import SearchPagination from '@/components/search/SearchPagination.vue'
-import CategoryBar from '@/components/browse/CategoryBar.vue'
+import BrowseCategorySection from '@/components/browse/BrowseCategorySection.vue'
 import FeaturedSpotlight from '@/components/browse/FeaturedSpotlight.vue'
 import UpdateGrid from '@/components/browse/UpdateGrid.vue'
 import MediaRow from '@/components/browse/MediaRow.vue'
 import PosterCard from '@/components/browse/PosterCard.vue'
 import { mangaApi, MANGA_FEATURED_TAGS } from '@/config/apis'
-import { fetchMangaList, fetchMangaTags, searchManga } from '@/utils/mangaMapper'
-import { mangaGenrePath } from '@/utils/mangaTags'
+import { fetchMangaList, searchManga } from '@/utils/mangaMapper'
 import { useRouteSearch } from '@/composables/useRouteSearch'
 import { useFavorites } from '@/composables/useFavorites'
 import { useAuth } from '@/composables/useAuth'
 
-const router = useRouter()
 const { ensureLoaded } = useFavorites()
 const { user, loading: authLoading } = useAuth()
 
-const tags = ref(
-  MANGA_FEATURED_TAGS.map((t) => ({ id: t.id, label: t.label, slug: t.slug }))
-)
 const results = ref([])
 const rows = ref([])
 const featured = ref(null)
@@ -143,15 +136,6 @@ const showSearchResults = computed(() => Boolean(query.value.trim()))
 const swiperRows = computed(() =>
   rows.value.filter((r) => r.key !== 'latest')
 )
-
-async function loadTags() {
-  try {
-    const genreTags = await fetchMangaTags(axios)
-    if (genreTags.length) tags.value = genreTags
-  } catch {
-    /* giữ fallback MANGA_FEATURED_TAGS */
-  }
-}
 
 async function loadHome() {
   homeLoading.value = true
@@ -227,11 +211,6 @@ function onSubmitSearch() {
   runSearch()
 }
 
-function onTagSelect(slug) {
-  if (slug) router.push(mangaGenrePath(slug))
-}
-
-loadTags()
 loadHome()
 
 watch(
@@ -246,14 +225,6 @@ watch(
 <style scoped>
 .browse-page {
   padding-bottom: 48px;
-}
-
-.browse-top {
-  padding-top: 16px;
-  padding-bottom: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .page-search {

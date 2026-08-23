@@ -1,5 +1,7 @@
 <template>
   <div class="category-page">
+    <BrowseCategorySection media="manga" />
+
     <header class="category-header">
       <div class="container">
         <div class="header-toolbar">
@@ -45,6 +47,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import PosterGrid from '@/components/browse/PosterGrid.vue'
+import BrowseCategorySection from '@/components/browse/BrowseCategorySection.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
 import {
   mangaApi,

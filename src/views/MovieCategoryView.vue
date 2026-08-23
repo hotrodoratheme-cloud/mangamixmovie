@@ -1,5 +1,7 @@
 <template>
   <div class="category-page">
+    <BrowseCategorySection media="movie" />
+
     <header class="category-header">
       <div class="container">
         <PageBreadcrumb :items="breadcrumbItems" />
@@ -75,6 +77,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import PosterGrid from '@/components/browse/PosterGrid.vue'
+import BrowseCategorySection from '@/components/browse/BrowseCategorySection.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
 import {
   MOVIE_LIST_TYPES,

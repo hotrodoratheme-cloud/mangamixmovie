@@ -1,14 +1,13 @@
 <template>
   <div class="browse-page">
-    <section class="container browse-top">
+    <BrowseCategorySection media="manga_vn">
       <SearchBar
         v-model="query"
         class="page-search"
         placeholder="Tìm truyện VN theo tên..."
         @search="onSubmitSearch"
       />
-      <CategoryBar :items="genres" @select="onGenreSelect" />
-    </section>
+    </BrowseCategorySection>
 
     <section v-if="showSearchResults" class="container results-section">
       <div class="section-head">
@@ -70,11 +69,10 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SearchBar from '@/components/search/SearchBar.vue'
 import SearchPagination from '@/components/search/SearchPagination.vue'
-import CategoryBar from '@/components/browse/CategoryBar.vue'
+import BrowseCategorySection from '@/components/browse/BrowseCategorySection.vue'
 import FeaturedSpotlight from '@/components/browse/FeaturedSpotlight.vue'
 import UpdateGrid from '@/components/browse/UpdateGrid.vue'
 import MediaRow from '@/components/browse/MediaRow.vue'
@@ -85,7 +83,6 @@ import { useRouteSearch } from '@/composables/useRouteSearch'
 import { useFavorites } from '@/composables/useFavorites'
 import { useAuth } from '@/composables/useAuth'
 
-const router = useRouter()
 const { ensureLoaded } = useFavorites()
 const { user, loading: authLoading } = useAuth()
 
@@ -216,10 +213,6 @@ function onSubmitSearch() {
   runSearch()
 }
 
-function onGenreSelect(slug) {
-  if (slug) router.push(`/truyen-vn/the-loai/${slug}`)
-}
-
 watch(
   () => [user.value?.id, authLoading.value],
   () => {
@@ -234,14 +227,6 @@ loadHome()
 <style scoped>
 .browse-page {
   padding-bottom: 48px;
-}
-
-.browse-top {
-  padding-top: 16px;
-  padding-bottom: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .page-search {
