@@ -122,8 +122,18 @@ router.onError((error, to) => {
     message.includes('Failed to fetch dynamically imported module') ||
     message.includes('Importing a module script failed')
   ) {
+    const reloadKey = `chunk-reload:${to.fullPath}`
+    if (sessionStorage.getItem(reloadKey)) {
+      console.error('Không thể tải module sau khi reload:', to.fullPath, error)
+      return
+    }
+    sessionStorage.setItem(reloadKey, '1')
     window.location.assign(to.fullPath)
   }
+})
+
+router.afterEach((to) => {
+  sessionStorage.removeItem(`chunk-reload:${to.fullPath}`)
 })
 
 export default router

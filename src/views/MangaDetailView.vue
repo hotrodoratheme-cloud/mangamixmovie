@@ -107,7 +107,7 @@ import {
   getMangaCover,
   getMangaGenres,
 } from '@/utils/mediaHelper'
-import { fetchMangaChapters, sortChapterItemsDesc } from '@/utils/mangaChapters'
+import { fetchMangaChapterCatalog, sortChapterItemsDesc, findChapterIndexById, resolveChapterId } from '@/utils/mangaChapters'
 import { fetchMangaTags } from '@/utils/mangaMapper'
 import { buildMangaTagIndex, mangaGenrePath } from '@/utils/mangaTags'
 import { useNavBack } from '@/composables/useNavBack'
@@ -143,15 +143,23 @@ const firstChapter = computed(() => {
 const continueChapter = computed(() => {
   const history = localHistory.getAll().manga
   const entry = history.find((h) => (h.itemId || h.item_id) === route.params.id)
-  if (!entry) return null
+  if (!entry || !chapters.value.length) return null
+
   const chapterId = entry.chapterId || entry.chapter_id
-  return chapters.value.find((c) => c.id === chapterId) || null
+  if (!chapterId) return null
+
+  const idx = findChapterIndexById(chapters.value, chapterId)
+  const row = chapters.value[idx]
+  if (!row) return null
+
+  const resumeId = resolveChapterId(chapters.value, idx, chapterId)
+  return { ...row, resumeId }
 })
 
 function readChapter(ch) {
   router.push({
     path: `/truyen/${route.params.id}/doc`,
-    query: preserveQuery({ chapter: ch.id }),
+    query: preserveQuery({ chapter: ch.resumeId || ch.id }),
   })
 }
 
@@ -167,7 +175,7 @@ async function loadDetail() {
   try {
     const [detailRes, chapterList, tagList] = await Promise.all([
       axios.get(mangaApi.detail(route.params.id)),
-      fetchMangaChapters(axios, route.params.id),
+      fetchMangaChapterCatalog(axios, route.params.id),
       fetchMangaTags(axios).catch(() => []),
     ])
 

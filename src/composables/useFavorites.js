@@ -3,6 +3,7 @@ import {
   favoriteKey,
   localFavorites,
   fetchCloudFavorites,
+  syncLocalStoreWithCloud,
   addFavorite,
   removeFavorite,
   getFavoritesDisplayFromLocal,
@@ -51,14 +52,6 @@ function buildKeysFromCloud(cloud) {
   for (const item of cloud.manga_vn || []) {
     const id = item.item_id || item.itemId
     if (isValidItemId(id)) keys.add(favoriteKey('manga_vn', id))
-  }
-  return keys
-}
-
-function mergeFavoriteKeys(userId, cloud = null) {
-  const keys = cloud ? buildKeysFromCloud(cloud) : new Set()
-  for (const key of buildKeysFromStore(localFavorites.getAll(userId))) {
-    keys.add(key)
   }
   return keys
 }
@@ -117,14 +110,22 @@ async function loadFavorites(userId) {
 
   loadingPromise = (async () => {
     try {
-      let cloud = { movies: [], manga: [], manga_vn: [] }
+      let cloud = null
+      let cloudOk = false
       try {
         cloud = await fetchCloudFavorites(userId)
+        cloudOk = true
       } catch {
         cloud = { movies: [], manga: [], manga_vn: [] }
       }
 
-      favoriteKeys.value = mergeFavoriteKeys(userId, cloud)
+      if (cloudOk) {
+        await syncLocalStoreWithCloud(userId, cloud)
+        favoriteKeys.value = buildKeysFromCloud(cloud)
+      } else {
+        favoriteKeys.value = buildKeysFromStore(localFavorites.getAll(userId))
+      }
+
       loadedForUser.value = userId
       loaded.value = true
       bindFavoritesSync(userId, () => refreshFavoriteKeys(userId))

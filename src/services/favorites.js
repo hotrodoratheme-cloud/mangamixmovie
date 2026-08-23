@@ -254,6 +254,50 @@ export function getFavoritesDisplayFromLocal(userId) {
   }
 }
 
+export async function syncLocalStoreWithCloud(userId, cloud) {
+  if (!userId) return emptyStore()
+
+  return runSerialized(() => {
+    const next = emptyStore()
+
+    for (const item of cloud.movies || []) {
+      const entry = normalizeEntry({
+        type: 'movie',
+        itemId: item.item_id || item.itemId,
+        itemName: item.item_name || item.itemName,
+        poster: item.poster,
+        createdAt: item.created_at || item.createdAt,
+      })
+      if (entry.itemId) next.movies.push(entry)
+    }
+
+    for (const item of cloud.manga || []) {
+      const entry = normalizeEntry({
+        type: 'manga',
+        itemId: item.item_id || item.itemId,
+        itemName: item.item_name || item.itemName,
+        poster: item.poster,
+        createdAt: item.created_at || item.createdAt,
+      })
+      if (entry.itemId) next.manga.push(entry)
+    }
+
+    for (const item of cloud.manga_vn || []) {
+      const entry = normalizeEntry({
+        type: 'manga_vn',
+        itemId: item.item_id || item.itemId,
+        itemName: item.item_name || item.itemName,
+        poster: item.poster,
+        createdAt: item.created_at || item.createdAt,
+      })
+      if (entry.itemId) next.manga_vn.push(entry)
+    }
+
+    writeStore(userId, compactStore(next))
+    return next
+  })
+}
+
 export async function fetchCloudFavorites(userId) {
   const { supabase } = await import('@/config/supabase')
   if (!supabase || !userId) return emptyStoreDisplay()
