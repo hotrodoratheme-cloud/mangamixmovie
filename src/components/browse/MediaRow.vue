@@ -2,7 +2,14 @@
   <section class="media-row">
     <div class="row-header">
       <h2>{{ title }}</h2>
-      <router-link v-if="seeAllTo" :to="seeAllTo" class="see-all">Xem tất cả →</router-link>
+      <router-link
+        v-if="seeAllTo"
+        :to="seeAllTo"
+        class="see-all"
+        @click="onSeeAll"
+      >
+        Xem tất cả →
+      </router-link>
     </div>
     <AppSwiper :id="swiperId" :items="items" />
   </section>
@@ -22,6 +29,10 @@ const props = defineProps({
 const swiperId = computed(() =>
   props.rowKey ? `row-${props.rowKey}` : `row-${props.title.replace(/\s+/g, '-').toLowerCase()}`
 )
+
+function onSeeAll() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <style scoped>
@@ -61,6 +72,9 @@ const swiperId = computed(() =>
   color: var(--accent);
   font-weight: 600;
   white-space: nowrap;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
 }
 
 .see-all:hover {

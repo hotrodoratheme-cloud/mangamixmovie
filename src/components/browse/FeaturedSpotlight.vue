@@ -1,6 +1,6 @@
 <template>
   <section v-if="item" class="spotlight">
-    <div class="spotlight-bg" :style="{ backgroundImage: `url(${item.cover})` }" />
+    <div class="spotlight-bg" :style="spotlightBgStyle" />
     <div class="spotlight-mask" />
 
     <div class="container spotlight-inner">
@@ -18,7 +18,7 @@
         <p v-if="item.description" class="spotlight-desc">{{ item.description }}</p>
 
         <router-link :to="item.to" class="btn btn-primary spotlight-btn">
-          ▶ Xem ngay
+          ▶ {{ actionLabel }}
         </router-link>
       </div>
 
@@ -29,7 +29,8 @@
           :to="side.to"
           class="side-card"
         >
-          <img :src="side.cover" :alt="side.title" loading="lazy" />
+          <MangaCover v-if="isMangaItem(side)" :url="side.cover" :alt="side.title" />
+          <LazyImage v-else :src="side.cover" :alt="side.title" />
           <div class="side-info">
             <strong>{{ side.title }}</strong>
             <span>{{ side.episode || side.subtitle }}</span>
@@ -41,10 +42,31 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import MangaCover from '@/components/browse/MangaCover.vue'
+import LazyImage from '@/components/browse/LazyImage.vue'
+import { resolveMangaImageSrc } from '@/utils/mangaImage'
+
+const props = defineProps({
   item: { type: Object, default: null },
   sideItems: { type: Array, default: () => [] },
 })
+
+const spotlightBgStyle = computed(() => {
+  const cover = props.item?.cover
+  if (!cover) return {}
+  return { backgroundImage: `url(${resolveMangaImageSrc(cover)})` }
+})
+
+const actionLabel = computed(() => {
+  const path = props.item?.to?.path || ''
+  return path.startsWith('/truyen-vn') || path.startsWith('/truyen/') ? 'Đọc ngay' : 'Xem ngay'
+})
+
+function isMangaItem(entry) {
+  const path = entry?.to?.path || ''
+  return path.startsWith('/truyen-vn') || path.startsWith('/truyen/')
+}
 </script>
 
 <style scoped>
@@ -97,7 +119,7 @@ defineProps({
   align-items: end;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1024px) {
   .spotlight-inner {
     grid-template-columns: 1fr 280px;
     align-items: center;
@@ -192,7 +214,8 @@ defineProps({
   background: var(--accent-soft);
 }
 
-.side-card img {
+.side-card img,
+.side-card :deep(img) {
   width: 56px;
   height: 76px;
   object-fit: cover;

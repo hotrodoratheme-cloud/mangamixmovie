@@ -1,4 +1,6 @@
 /** Ảnh placeholder khi không có / lỗi cover truyện */
+import { localApiUrl } from '@/config/proxy'
+
 export const MANGA_PLACEHOLDER =
   'data:image/svg+xml,' +
   encodeURIComponent(
@@ -10,9 +12,48 @@ export const MANGA_PLACEHOLDER =
     </svg>`
   )
 
-/** Proxy ảnh chapter MangaDex qua server */
+export function isOtruyenMediaUrl(url) {
+  if (!url?.startsWith('https://')) return false
+  try {
+    const { hostname } = new URL(url)
+    return (
+      hostname.endsWith('otruyenapi.com') ||
+      hostname.endsWith('otruyencdn.com') ||
+      hostname.endsWith('otruyencdn.net')
+    )
+  } catch {
+    return false
+  }
+}
+
+export function isMangadexMediaUrl(url) {
+  if (!url?.startsWith('https://')) return false
+  try {
+    const { hostname } = new URL(url)
+    return (
+      hostname.endsWith('mangadex.org') ||
+      hostname.endsWith('mangadex.network') ||
+      hostname.endsWith('mcdax.org')
+    )
+  } catch {
+    return false
+  }
+}
+
+/** Proxy ảnh MangaDex qua server (tránh DNS/CORS chặn trực tiếp) */
 export function proxyMangaImageUrl(directUrl) {
   if (!directUrl) return ''
-  if (directUrl.startsWith('/api/manga-image')) return directUrl
-  return `/api/manga-image?url=${encodeURIComponent(directUrl)}`
+  if (directUrl.startsWith('/api/manga-image') || directUrl.includes('/api/manga-image?')) {
+    return directUrl.startsWith('http') ? directUrl : localApiUrl(directUrl)
+  }
+  return localApiUrl(`/api/manga-image?url=${encodeURIComponent(directUrl)}`)
+}
+
+/** URL hiển thị ảnh — MangaDex/OTruyen luôn qua proxy */
+export function resolveMangaImageSrc(url) {
+  if (!url || url.startsWith('data:image/svg+xml')) {
+    return url?.startsWith('data:') ? url : MANGA_PLACEHOLDER
+  }
+  if (isMangadexMediaUrl(url) || isOtruyenMediaUrl(url)) return proxyMangaImageUrl(url)
+  return url
 }

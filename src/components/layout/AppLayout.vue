@@ -33,7 +33,7 @@
           <button v-if="user" class="user-pill" @click="router.push('/tai-khoan')">
             {{ displayName }}
           </button>
-          <button v-else class="btn btn-primary btn-sm" @click="showAuth = true">Đăng nhập</button>
+          <button v-else class="btn btn-primary btn-sm header-login-btn" @click="openAuth()">Đăng nhập</button>
           <button class="icon-btn menu-btn" @click="menuOpen = !menuOpen">☰</button>
         </div>
       </div>
@@ -52,7 +52,11 @@
 
     <AppFooter />
 
-    <AuthModal v-if="showAuth" @close="showAuth = false" />
+    <BackToTop />
+
+    <NavBackButton />
+
+    <AuthModal v-if="showAuth" @close="onAuthClose" @success="onAuthSuccess" />
   </div>
 </template>
 
@@ -61,15 +65,19 @@ import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import { useAuth } from '@/composables/useAuth'
+import { useAuthModal } from '@/composables/useAuthModal'
+import { useFavorites } from '@/composables/useFavorites'
 import AuthModal from '@/components/auth/AuthModal.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
+import BackToTop from '@/components/layout/BackToTop.vue'
+import NavBackButton from '@/components/layout/NavBackButton.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { theme, toggleTheme } = useTheme()
 const { user, displayName } = useAuth()
-
-const showAuth = ref(false)
+const { showAuth, openAuth, closeAuth, takePendingAction } = useAuthModal()
+const { applyPendingFavorite, invalidateCache } = useFavorites()
 const menuOpen = ref(false)
 const searchQuery = ref('')
 
@@ -92,10 +100,46 @@ watch(
 watch(
   () => route.query.login,
   (login) => {
-    if (login === '1') showAuth.value = true
+    if (login === '1' && !user.value) openAuth()
   },
   { immediate: true }
 )
+
+watch(
+  () => user.value?.id,
+  (userId) => {
+    if (userId && showAuth.value) {
+      void finishAuthSuccess()
+    }
+  }
+)
+
+function clearLoginQuery() {
+  if (route.query.login == null) return
+  const query = { ...route.query }
+  delete query.login
+  router.replace({ path: route.path, query })
+}
+
+function onAuthClose() {
+  closeAuth()
+  clearLoginQuery()
+  takePendingAction()
+}
+
+async function finishAuthSuccess() {
+  closeAuth()
+  clearLoginQuery()
+  const action = takePendingAction()
+  if (action?.kind === 'favorite') {
+    invalidateCache()
+    await applyPendingFavorite(action)
+  }
+}
+
+function onAuthSuccess() {
+  void finishAuthSuccess()
+}
 
 function onSearch() {
   const q = searchQuery.value.trim()
@@ -134,13 +178,15 @@ function onSearch() {
   align-items: center;
   gap: 20px;
   height: var(--header-h);
+  min-width: 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .brand-icon {
@@ -165,6 +211,7 @@ function onSearch() {
 .brand-text strong {
   font-size: 1.0625rem;
   font-weight: 800;
+  white-space: nowrap;
   background: linear-gradient(90deg, var(--accent), #ff8c00);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -236,6 +283,14 @@ function onSearch() {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.header-login-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: max-content;
 }
 
 .icon-btn {
@@ -266,6 +321,12 @@ function onSearch() {
   border-radius: 999px;
   font-size: 0.8125rem;
   font-weight: 600;
+  white-space: nowrap;
+  max-width: min(120px, 28vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .menu-btn {
@@ -273,7 +334,7 @@ function onSearch() {
 }
 
 .mobile-nav {
-  display: none;
+  display: flex;
   flex-direction: column;
   padding-bottom: 12px;
   gap: 4px;
@@ -295,7 +356,15 @@ function onSearch() {
   flex: 1;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
+  .header-inner {
+    gap: 10px;
+  }
+
+  .brand-text small {
+    display: none;
+  }
+
   .nav,
   .header-search {
     display: none;
@@ -304,9 +373,35 @@ function onSearch() {
   .menu-btn {
     display: flex;
   }
+}
 
-  .mobile-nav {
-    display: flex;
+@media (max-width: 420px) {
+  .header-inner {
+    gap: 8px;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand-text strong {
+    font-size: 0.9375rem;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .header-login-btn {
+    padding: 7px 10px;
+    font-size: 0.75rem;
+  }
+
+  .theme-btn,
+  .menu-btn {
+    width: 36px;
+    height: 36px;
   }
 }
 </style>

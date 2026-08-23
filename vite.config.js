@@ -18,7 +18,7 @@ async function handleApiProxy(req, res, pathname, proxyFn) {
   }
 
   try {
-    const { body, contentType } = await proxyFn(decodeURIComponent(target))
+    const { body, contentType } = await proxyFn(target)
     res.statusCode = 200
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Content-Type', contentType)

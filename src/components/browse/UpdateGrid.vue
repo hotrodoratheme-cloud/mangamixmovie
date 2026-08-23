@@ -2,7 +2,14 @@
   <section v-if="items.length" class="update-section">
     <div class="section-head">
       <h2>{{ title }}</h2>
-      <router-link v-if="seeAllTo" :to="seeAllTo" class="see-all">Xem tất cả →</router-link>
+      <router-link
+        v-if="seeAllTo"
+        :to="seeAllTo"
+        class="see-all"
+        @click="onSeeAll"
+      >
+        Xem tất cả →
+      </router-link>
     </div>
     <div class="update-grid">
       <PosterCard
@@ -18,11 +25,15 @@
 <script setup>
 import PosterCard from './PosterCard.vue'
 
-defineProps({
+const props = defineProps({
   title: { type: String, default: 'Mới cập nhật' },
   items: { type: Array, default: () => [] },
   seeAllTo: { type: Object, default: null },
 })
+
+function onSeeAll() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <style scoped>

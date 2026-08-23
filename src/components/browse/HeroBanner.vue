@@ -7,7 +7,7 @@
       <h1>{{ item.title }}</h1>
       <p v-if="item.subtitle" class="hero-sub">{{ item.subtitle }}</p>
       <div class="hero-actions">
-        <router-link :to="item.to" class="btn btn-play">▶ Xem ngay</router-link>
+        <router-link :to="item.to" class="btn btn-play">▶ {{ actionLabel }}</router-link>
         <router-link v-if="infoLink" :to="infoLink" class="btn btn-info">ℹ Chi tiết</router-link>
       </div>
     </div>
@@ -15,9 +15,16 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   item: { type: Object, default: null },
   infoLink: { type: Object, default: null },
+})
+
+const actionLabel = computed(() => {
+  const path = props.item?.to?.path || ''
+  return path.startsWith('/truyen-vn') || path.startsWith('/truyen/') ? 'Đọc ngay' : 'Xem ngay'
 })
 </script>
 

@@ -12,7 +12,7 @@
       <div class="account-header">
         <div>
           <h1 class="page-title">👤 Tài khoản</h1>
-          <p class="page-subtitle">Quản lý hồ sơ và lịch sử xem của bạn</p>
+          <p class="page-subtitle">Quản lý hồ sơ, yêu thích và lịch sử xem</p>
         </div>
         <button type="button" class="btn btn-ghost btn-sm" :disabled="signingOut" @click="handleSignOut">
           Đăng xuất
@@ -52,6 +52,113 @@
 
       <section class="account-card">
         <div class="section-head">
+          <h2>Yêu thích</h2>
+        </div>
+
+        <div v-if="favoritesLoading" class="loading-text">Đang tải yêu thích...</div>
+
+        <template v-else>
+          <div v-if="favoriteMovies.length" class="history-block">
+            <h3>🎬 Phim ({{ favoriteMovies.length }})</h3>
+            <ul class="history-list">
+              <li v-for="item in favoriteMovies" :key="getItemId(item)" class="history-item">
+                <router-link :to="movieLink(item)">
+                  <div class="history-list-thumb">
+                    <HistoryThumb
+                      type="movie"
+                      :poster="item.poster"
+                      :alt="item.itemName || item.item_name"
+                    />
+                  </div>
+                  <div>
+                    <strong>{{ item.itemName || item.item_name }}</strong>
+                    <span>Phim yêu thích</span>
+                  </div>
+                </router-link>
+                <button
+                  type="button"
+                  class="remove-btn"
+                  title="Bỏ yêu thích"
+                  :disabled="removingKey === `movie:${getItemId(item)}`"
+                  @click="removeFavoriteItem('movie', getItemId(item))"
+                >
+                  ♥
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="favoriteManga.length" class="history-block">
+            <h3>📖 Truyện Mangadex ({{ favoriteManga.length }})</h3>
+            <ul class="history-list">
+              <li v-for="item in favoriteManga" :key="getItemId(item)" class="history-item">
+                <router-link :to="mangaLink(item)">
+                  <div class="history-list-thumb">
+                    <HistoryThumb
+                      type="manga"
+                      :poster="item.poster"
+                      :alt="item.itemName || item.item_name"
+                    />
+                  </div>
+                  <div>
+                    <strong>{{ item.itemName || item.item_name }}</strong>
+                    <span>Truyện yêu thích</span>
+                  </div>
+                </router-link>
+                <button
+                  type="button"
+                  class="remove-btn"
+                  title="Bỏ yêu thích"
+                  :disabled="removingKey === `manga:${getItemId(item)}`"
+                  @click="removeFavoriteItem('manga', getItemId(item))" 
+                >
+                  ♥
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="favoriteMangaVn.length" class="history-block">
+            <h3>📖 Truyện VN ({{ favoriteMangaVn.length }})</h3>
+            <ul class="history-list">
+              <li v-for="item in favoriteMangaVn" :key="getItemId(item)" class="history-item">
+                <router-link :to="mangaVnLink(item)">
+                  <div class="history-list-thumb">
+                    <HistoryThumb
+                      type="manga_vn"
+                      :poster="item.poster"
+                      :alt="item.itemName || item.item_name"
+                    />
+                  </div>
+                  <div>
+                    <strong>{{ item.itemName || item.item_name }}</strong>
+                    <span>Truyện yêu thích</span>
+                  </div>
+                </router-link>
+                <button
+                  type="button"
+                  class="remove-btn"
+                  title="Bỏ yêu thích"
+                  :disabled="removingKey === `manga_vn:${getItemId(item)}`"
+                  @click="removeFavoriteItem('manga_vn', getItemId(item))"
+                >
+                  ♥
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div
+            v-if="!favoriteMovies.length && !favoriteManga.length && !favoriteMangaVn.length"
+            class="empty-history"
+          >
+            Chưa có mục yêu thích. Nhấn ♡ trên poster hoặc trang chi tiết để lưu!
+          </div>
+        </template>
+      </section>
+
+      <section class="account-card">
+        <div class="section-head">
           <h2>Lịch sử xem</h2>
           <router-link to="/lich-su" class="see-all">Xem đầy đủ →</router-link>
         </div>
@@ -64,7 +171,13 @@
             <ul class="history-list">
               <li v-for="item in movies.slice(0, 5)" :key="getItemId(item)">
                 <router-link :to="movieLink(item)">
-                  <img :src="item.poster" :alt="item.itemName || item.item_name" loading="lazy" />
+                  <div class="history-list-thumb">
+                    <HistoryThumb
+                      type="movie"
+                      :poster="item.poster"
+                      :alt="item.itemName || item.item_name"
+                    />
+                  </div>
                   <div>
                     <strong>{{ item.itemName || item.item_name }}</strong>
                     <span>{{ item.episodeName || item.episode_slug || '—' }}</span>
@@ -75,11 +188,17 @@
           </div>
 
           <div v-if="manga.length" class="history-block">
-            <h3>📖 Truyện ({{ manga.length }})</h3>
+            <h3>📖 Truyện Mangadex ({{ manga.length }})</h3>
             <ul class="history-list">
               <li v-for="item in manga.slice(0, 5)" :key="getItemId(item)">
                 <router-link :to="mangaLink(item)">
-                  <img :src="item.poster" :alt="item.itemName || item.item_name" loading="lazy" />
+                  <div class="history-list-thumb">
+                    <HistoryThumb
+                      type="manga"
+                      :poster="item.poster"
+                      :alt="item.itemName || item.item_name"
+                    />
+                  </div>
                   <div>
                     <strong>{{ item.itemName || item.item_name }}</strong>
                     <span>{{ item.chapterName || item.chapter_id || '—' }}</span>
@@ -89,7 +208,28 @@
             </ul>
           </div>
 
-          <div v-if="!movies.length && !manga.length" class="empty-history">
+          <div v-if="mangaVn.length" class="history-block">
+            <h3>📖 Truyện VN ({{ mangaVn.length }})</h3>
+            <ul class="history-list">
+              <li v-for="item in mangaVn.slice(0, 5)" :key="getItemId(item)">
+                <router-link :to="mangaVnLink(item)">
+                  <div class="history-list-thumb">
+                    <HistoryThumb
+                      type="manga_vn"
+                      :poster="item.poster"
+                      :alt="item.itemName || item.item_name"
+                    />
+                  </div>
+                  <div>
+                    <strong>{{ item.itemName || item.item_name }}</strong>
+                    <span>{{ item.chapterName || item.chapter_id || '—' }}</span>
+                  </div>
+                </router-link>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="!movies.length && !manga.length && !mangaVn.length" class="empty-history">
             Chưa có lịch sử. Hãy xem phim hoặc đọc truyện!
           </div>
         </template>
@@ -100,12 +240,17 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { fetchCloudHistory } from '@/services/history'
+import { fetchCloudHistory, localHistory, mergeHistoryLists } from '@/services/history'
+import { useFavorites } from '@/composables/useFavorites'
+import { mergeFavoriteLists } from '@/services/favorites'
+import HistoryThumb from '@/components/browse/HistoryThumb.vue'
 
+const route = useRoute()
 const router = useRouter()
 const { user, profile, loading: authLoading, updateUsername, signOut, refreshProfile } = useAuth()
+const { fetchAll, remove: removeFavorite, favoritesRevision, getDisplayFavorites } = useFavorites()
 
 const usernameInput = ref('')
 const savingProfile = ref(false)
@@ -115,7 +260,14 @@ const signingOut = ref(false)
 
 const movies = ref([])
 const manga = ref([])
+const mangaVn = ref([])
 const historyLoading = ref(true)
+
+const favoriteMovies = ref([])
+const favoriteManga = ref([])
+const favoriteMangaVn = ref([])
+const favoritesLoading = ref(true)
+const removingKey = ref('')
 
 function getItemId(item) {
   return item.itemId || item.item_id
@@ -134,28 +286,88 @@ function mangaLink(item) {
   return { path: `/truyen/${id}` }
 }
 
+function mangaVnLink(item) {
+  const id = getItemId(item)
+  const chapter = item.chapterId || item.chapter_id
+  if (chapter) return { path: `/truyen-vn/${id}/doc`, query: { chapter } }
+  return { path: `/truyen-vn/${id}` }
+}
+
 function openLogin() {
-  router.push({ path: '/phim', query: { login: '1' } })
+  router.push({ path: route.path, query: { ...route.query, login: '1' } })
 }
 
 async function loadHistory() {
   if (!user.value?.id) {
     movies.value = []
     manga.value = []
+    mangaVn.value = []
     historyLoading.value = false
     return
   }
 
   historyLoading.value = true
   try {
-    const cloud = await fetchCloudHistory(user.value.id)
-    movies.value = cloud.movies
-    manga.value = cloud.manga
+    const local = localHistory.getAll()
+    if (user.value?.id) {
+      const cloud = await fetchCloudHistory(user.value.id)
+      movies.value = mergeHistoryLists(cloud.movies, local.movies)
+      manga.value = mergeHistoryLists(cloud.manga, local.manga)
+      mangaVn.value = mergeHistoryLists(cloud.manga_vn || [], local.manga_vn || [])
+    } else {
+      movies.value = local.movies
+      manga.value = local.manga
+      mangaVn.value = local.manga_vn || []
+    }
   } catch {
-    movies.value = []
-    manga.value = []
+    const local = localHistory.getAll()
+    movies.value = local.movies
+    manga.value = local.manga
+    mangaVn.value = local.manga_vn || []
   } finally {
     historyLoading.value = false
+  }
+}
+
+async function loadFavorites(silent = false) {
+  if (!user.value?.id) {
+    favoriteMovies.value = []
+    favoriteManga.value = []
+    favoriteMangaVn.value = []
+    favoritesLoading.value = false
+    return
+  }
+
+  if (!silent) favoritesLoading.value = true
+  try {
+    let cloud = { movies: [], manga: [], manga_vn: [] }
+    try {
+      cloud = await fetchAll()
+    } catch {
+      cloud = { movies: [], manga: [], manga_vn: [] }
+    }
+
+    const local = getDisplayFavorites()
+    favoriteMovies.value = mergeFavoriteLists(cloud.movies, local.movies, 'movie')
+    favoriteManga.value = mergeFavoriteLists(cloud.manga, local.manga, 'manga')
+    favoriteMangaVn.value = mergeFavoriteLists(cloud.manga_vn, local.manga_vn, 'manga_vn')
+  } catch {
+    const local = getDisplayFavorites()
+    favoriteMovies.value = mergeFavoriteLists([], local.movies, 'movie')
+    favoriteManga.value = mergeFavoriteLists([], local.manga, 'manga')
+    favoriteMangaVn.value = mergeFavoriteLists([], local.manga_vn, 'manga_vn')
+  } finally {
+    if (!silent) favoritesLoading.value = false
+  }
+}
+
+async function removeFavoriteItem(type, itemId) {
+  removingKey.value = `${type}:${itemId}`
+  try {
+    await removeFavorite(type, itemId)
+    await loadFavorites()
+  } finally {
+    removingKey.value = ''
   }
 }
 
@@ -193,10 +405,21 @@ watch(
 )
 
 watch(user, () => {
-  if (!authLoading.value) loadHistory()
+  if (!authLoading.value) {
+    loadHistory()
+    loadFavorites()
+  }
 })
 
-onMounted(loadHistory)
+watch(favoritesRevision, () => {
+  if (!user.value?.id) return
+  void loadFavorites(true)
+})
+
+onMounted(() => {
+  loadHistory()
+  loadFavorites()
+})
 </script>
 
 <style scoped>
@@ -337,7 +560,66 @@ onMounted(loadHistory)
   gap: 8px;
 }
 
-.history-list a {
+.history-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-item {
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.history-item:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.history-item a {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.history-item a:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.remove-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 45, 85, 0.1);
+  color: #ff2d55;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.remove-btn:hover:not(:disabled) {
+  background: rgba(255, 45, 85, 0.2);
+  border-color: #ff2d55;
+}
+
+.remove-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.history-list li:not(.history-item) a {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -347,17 +629,18 @@ onMounted(loadHistory)
   transition: border-color 0.15s, background 0.15s;
 }
 
-.history-list a:hover {
+.history-list li:not(.history-item) a:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
 
-.history-list img {
+.history-list-thumb {
   width: 44px;
   height: 62px;
-  object-fit: cover;
-  border-radius: 6px;
   flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
 }
 
 .history-list strong {

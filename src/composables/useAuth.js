@@ -56,14 +56,14 @@ export function useAuth() {
     signIn: async (identifier, password) => {
       const { user: u } = await signInWithIdentifier(identifier, password)
       user.value = u
-      await loadProfile(u?.id)
+      void loadProfile(u?.id)
     },
     signUp: async (email, password, username) => {
       const data = await signUp(email, password, username)
       const u = data.user ?? data.session?.user
       if (u) {
         user.value = u
-        await loadProfile(u.id)
+        void loadProfile(u.id)
       }
       return data
     },

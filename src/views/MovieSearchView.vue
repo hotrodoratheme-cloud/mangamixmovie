@@ -68,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SearchBar from '@/components/search/SearchBar.vue'
@@ -87,8 +87,12 @@ import {
 } from '@/utils/movieMapper'
 import { movieApi } from '@/config/apis'
 import { useRouteSearch } from '@/composables/useRouteSearch'
+import { useFavorites } from '@/composables/useFavorites'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { ensureLoaded } = useFavorites()
+const { user, loading: authLoading } = useAuth()
 
 const genres = ref([])
 const results = ref([])
@@ -145,15 +149,17 @@ async function loadHome() {
   homeLoading.value = true
   try {
     const [genreList, ...listResults] = await Promise.all([
-      fetchGenres(axios),
-      ...MOVIE_LIST_TYPES.map((t) => fetchMovieList(axios, t.key)),
+      fetchGenres(axios).catch(() => []),
+      ...MOVIE_LIST_TYPES.map((t) =>
+        fetchMovieList(axios, t.key).catch(() => ({ items: [], title: t.label }))
+      ),
     ])
 
     genres.value = genreList
     rows.value = MOVIE_LIST_TYPES.map((t, i) => ({
       key: t.key,
       title: t.label,
-      items: listResults[i].items,
+      items: listResults[i]?.items || [],
     }))
 
     const latest = listResults[0]?.items || []
@@ -174,13 +180,13 @@ async function loadHome() {
 async function enrichFeatured(slug) {
   try {
     const { data } = await axios.get(movieApi.detail(slug))
-    const movie = data?.data?.item
-    const imageDomain = data?.data?.APP_DOMAIN_CDN_IMAGE || 'https://phimimg.com'
+    const movie = data?.movie || data?.data?.item
     if (!movie) return
-
+    const imageDomain = data?.data?.APP_DOMAIN_CDN_IMAGE || 'https://phimimg.com'
+    const mapped = mapMovieItem(movie, imageDomain)
     featured.value = {
-      ...mapMovieItem(movie, imageDomain),
-      description: mapMovieItem(movie, imageDomain).description,
+      ...mapped,
+      description: mapped.description || featured.value?.description || '',
     }
   } catch {
     /* giữ dữ liệu từ list */
@@ -202,6 +208,14 @@ function onGenreSelect(slug) {
   if (slug) router.push(`/phim/the-loai/${slug}`)
 }
 
+watch(
+  () => [user.value?.id, authLoading.value],
+  () => {
+    if (!authLoading.value && user.value?.id) ensureLoaded()
+  },
+  { immediate: true }
+)
+
 loadHome()
 </script>
 
@@ -222,7 +236,7 @@ loadHome()
   display: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .page-search {
     display: flex;
   }

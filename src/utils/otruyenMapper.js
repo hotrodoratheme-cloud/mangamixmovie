@@ -1,3 +1,5 @@
+import { extractChapterId } from '@/utils/otruyenChapters'
+
 function stripHtml(html) {
   if (!html) return ''
   return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
@@ -24,25 +26,86 @@ function mapStatusLabel(status) {
   return status || ''
 }
 
+export function getOtruyenGenres(item) {
+  const raw = item?.category || item?.categories || item?.genres || []
+  return (Array.isArray(raw) ? raw : [])
+    .map((entry) => ({
+      id: entry.slug || entry.id || entry.name,
+      slug: entry.slug || entry.id || '',
+      label: entry.name || entry.label || entry.slug || '',
+    }))
+    .filter((g) => g.label)
+}
+
+export function getOtruyenLatestChapters(item) {
+  const slug = item?.slug
+  return (item?.chaptersLatest || [])
+    .map((ch) => {
+      const id = extractChapterId(ch.chapter_api_data)
+      const num = ch.chapter_name
+      let label = 'Chapter mới'
+      if (num != null && num !== '') label = `Ch.${num}`
+      else {
+        const title = ch.chapter_title?.trim()
+        if (title) label = title
+      }
+
+      return {
+        id,
+        label,
+        to:
+          slug && id
+            ? { path: `/truyen-vn/${slug}/doc`, query: { chapter: id } }
+            : null,
+      }
+    })
+    .filter((ch) => ch.id && ch.to?.path)
+    .slice(0, 2)
+}
+
 export function mapOtruyenItem(item, cdnDomain = 'https://img.otruyenapi.com') {
   const latest = item.chaptersLatest?.[0]?.chapter_name
   const statusLabel = mapStatusLabel(item.status)
+  const genres = getOtruyenGenres(item)
+  const latestChapters = getOtruyenLatestChapters(item)
 
   return {
     id: item.slug,
-    title: item.name,
+    title: item.name || 'Chưa có tiêu đề',
     subtitle: (item.origin_name || []).filter(Boolean).join(', ') || statusLabel,
     cover: buildOtruyenCoverUrl(cdnDomain, item.thumb_url),
     quality: null,
     episode: latest ? `Ch.${latest}` : statusLabel,
     isNew: isRecent(item.updatedAt),
     description: stripHtml(item.content).slice(0, 220),
+    genres,
+    latestChapters,
+    statusKey: item.status || '',
+    updatedAt: item.updatedAt || '',
     to: { path: `/truyen-vn/${item.slug}` },
   }
 }
 
 export function mapOtruyenItems(items, cdnDomain) {
   return (items || []).map((item) => mapOtruyenItem(item, cdnDomain))
+}
+
+export function filterOtruyenItems(items, { status = '' } = {}) {
+  if (!status) return items
+  return items.filter((item) => item.statusKey === status)
+}
+
+export function sortOtruyenItems(items, sortBy = 'updated') {
+  const list = [...items]
+  if (sortBy === 'name') {
+    return list.sort((a, b) => a.title.localeCompare(b.title, 'vi'))
+  }
+  if (sortBy === 'name-desc') {
+    return list.sort((a, b) => b.title.localeCompare(a.title, 'vi'))
+  }
+  return list.sort(
+    (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+  )
 }
 
 function getPagination(data, page) {
@@ -78,10 +141,13 @@ export async function fetchOtruyenHome(axios) {
 export async function fetchOtruyenGenres(axios) {
   const { otruyenApi } = await import('@/config/apis')
   const { data } = await axios.get(otruyenApi.genres())
-  return (data?.data?.items || []).map((g) => ({
-    slug: g.slug,
-    label: g.name,
-  }))
+  return (data?.data?.items || [])
+    .map((g) => ({
+      slug: g.slug,
+      label: g.name,
+    }))
+    .filter((g) => g.slug && g.label)
+    .sort((a, b) => a.label.localeCompare(b.label, 'vi'))
 }
 
 export async function fetchOtruyenGenreList(axios, slug, page = 1) {
@@ -122,5 +188,20 @@ export async function fetchOtruyenDetail(axios, slug) {
     cdn,
     item,
     mapped: mapOtruyenItem(item, cdn),
+  }
+}
+
+export function mapOtruyenDetailMeta(item, cdn) {
+  const authors = Array.isArray(item.author) ? item.author.filter(Boolean).join(', ') : ''
+  return {
+    title: item.name || '',
+    altTitle: (item.origin_name || []).filter(Boolean).join(', '),
+    cover: buildOtruyenCoverUrl(cdn, item.thumb_url),
+    description: stripHtml(item.content),
+    status: mapStatusLabel(item.status),
+    statusKey: item.status || '',
+    year: item.updatedAt ? new Date(item.updatedAt).getFullYear() : '',
+    authors,
+    genres: getOtruyenGenres(item),
   }
 }

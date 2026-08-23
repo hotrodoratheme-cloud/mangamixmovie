@@ -45,12 +45,14 @@
       <FeaturedSpotlight :item="featured" :side-items="sideItems" />
 
       <div v-if="homeLoading" class="loading-text">Đang tải danh mục...</div>
+      <div v-else-if="homeError" class="container error-text">{{ homeError }}</div>
 
       <div v-else class="container home-sections">
         <UpdateGrid
           v-if="updateItems.length"
           title="Mới cập nhật"
           :items="updateItems"
+          :see-all-to="{ name: 'manga-list', params: { type: 'latest' } }"
         />
 
         <MediaRow
@@ -67,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SearchBar from '@/components/search/SearchBar.vue'
@@ -78,12 +80,19 @@ import UpdateGrid from '@/components/browse/UpdateGrid.vue'
 import MediaRow from '@/components/browse/MediaRow.vue'
 import PosterCard from '@/components/browse/PosterCard.vue'
 import { mangaApi, MANGA_FEATURED_TAGS } from '@/config/apis'
-import { fetchMangaList, searchManga } from '@/utils/mangaMapper'
+import { fetchMangaList, fetchMangaTags, searchManga } from '@/utils/mangaMapper'
+import { mangaGenrePath } from '@/utils/mangaTags'
 import { useRouteSearch } from '@/composables/useRouteSearch'
+import { useFavorites } from '@/composables/useFavorites'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { ensureLoaded } = useFavorites()
+const { user, loading: authLoading } = useAuth()
 
-const tags = ref(MANGA_FEATURED_TAGS.map((t) => ({ id: t.id, label: t.label })))
+const tags = ref(
+  MANGA_FEATURED_TAGS.map((t) => ({ id: t.id, label: t.label, slug: t.slug }))
+)
 const results = ref([])
 const rows = ref([])
 const featured = ref(null)
@@ -91,6 +100,7 @@ const sideItems = ref([])
 const updateItems = ref([])
 const loading = ref(false)
 const homeLoading = ref(true)
+const homeError = ref('')
 const error = ref('')
 const searchPage = ref(1)
 const totalPages = ref(1)
@@ -134,25 +144,64 @@ const swiperRows = computed(() =>
   rows.value.filter((r) => r.key !== 'latest')
 )
 
+async function loadTags() {
+  try {
+    const genreTags = await fetchMangaTags(axios)
+    if (genreTags.length) tags.value = genreTags
+  } catch {
+    /* giữ fallback MANGA_FEATURED_TAGS */
+  }
+}
+
 async function loadHome() {
   homeLoading.value = true
+  homeError.value = ''
+
   try {
+    const featuredTags = MANGA_FEATURED_TAGS.slice(0, 4)
     const [popular, latest, ...tagRows] = await Promise.all([
-      fetchMangaList(axios, mangaApi.popular(16)),
-      fetchMangaList(axios, mangaApi.latest(16)),
-      ...MANGA_FEATURED_TAGS.slice(0, 4).map((t) =>
-        fetchMangaList(axios, mangaApi.byTag(t.id, 16))
+      fetchMangaList(axios, mangaApi.popular(16), {
+        withLatestChapters: true,
+        maxChapterFetches: 12,
+        chapterConcurrency: 3,
+      }),
+      fetchMangaList(axios, mangaApi.latest(16), {
+        withLatestChapters: true,
+        maxChapterFetches: 12,
+        chapterConcurrency: 3,
+      }),
+      ...featuredTags.map((t) =>
+        fetchMangaList(axios, mangaApi.byTag(t.id, 16), {
+          withLatestChapters: true,
+          maxChapterFetches: 8,
+          chapterConcurrency: 2,
+        })
       ),
     ])
 
+    if (!popular.length && !latest.length) {
+      homeError.value = 'Không thể tải truyện từ MangaDex. Thử tải lại trang sau vài giây.'
+      return
+    }
+
     rows.value = [
-      { key: 'popular', title: 'Truyện nổi bật', items: popular, seeAllTo: null },
-      { key: 'latest', title: 'Cập nhật mới', items: latest, seeAllTo: null },
-      ...MANGA_FEATURED_TAGS.slice(0, 4).map((t, i) => ({
+      {
+        key: 'popular',
+        title: 'Truyện nổi bật',
+        items: popular,
+        seeAllTo: { name: 'manga-list', params: { type: 'popular' } },
+      },
+      {
+        key: 'latest',
+        title: 'Cập nhật mới',
+        items: latest,
+        seeAllTo: { name: 'manga-list', params: { type: 'latest' } },
+      },
+      ...featuredTags.map((t, i) => ({
         key: t.id,
         title: t.label,
-        items: tagRows[i],
-        seeAllTo: { path: `/truyen/the-loai/${t.id}` },
+        items: tagRows[i] || [],
+        seeAllTo: { name: 'manga-genre', params: { slug: t.slug } },
       })),
     ]
 
@@ -161,6 +210,7 @@ async function loadHome() {
     sideItems.value = (popular.length ? popular : latest).slice(1, 5)
   } catch (err) {
     console.error(err)
+    homeError.value = 'Không thể tải truyện. Kiểm tra kết nối mạng và thử lại.'
   } finally {
     homeLoading.value = false
   }
@@ -177,11 +227,20 @@ function onSubmitSearch() {
   runSearch()
 }
 
-function onTagSelect(tagId) {
-  if (tagId) router.push(`/truyen/the-loai/${tagId}`)
+function onTagSelect(slug) {
+  if (slug) router.push(mangaGenrePath(slug))
 }
 
+loadTags()
 loadHome()
+
+watch(
+  () => [user.value?.id, authLoading.value],
+  () => {
+    if (!authLoading.value && user.value?.id) ensureLoaded()
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
@@ -201,7 +260,7 @@ loadHome()
   display: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .page-search {
     display: flex;
   }

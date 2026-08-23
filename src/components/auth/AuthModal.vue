@@ -126,12 +126,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { validateUsername } from '@/services/profile'
 
-const emit = defineEmits(['close'])
-const { signIn, signUp, resetPassword, isConfigured } = useAuth()
+const emit = defineEmits(['close', 'success'])
+const { signIn, signUp, resetPassword, isConfigured, user } = useAuth()
 
 const mode = ref('login')
 const identifier = ref('')
@@ -179,12 +179,12 @@ async function handleSubmit() {
   try {
     if (mode.value === 'login') {
       await signIn(identifier.value, password.value)
-      emit('close')
+      emit('success')
     } else if (mode.value === 'register') {
       if (username.value.trim()) validateUsername(username.value)
       await signUp(email.value, password.value, username.value.trim() || undefined)
       success.value = 'Đăng ký thành công! Bạn đã được đăng nhập.'
-      emit('close')
+      emit('success')
     } else {
       if (newPassword.value !== confirmPassword.value) {
         error.value = 'Mật khẩu xác nhận không khớp'
@@ -204,6 +204,16 @@ async function handleSubmit() {
     loading.value = false
   }
 }
+
+watch(
+  () => user.value?.id,
+  (userId) => {
+    if (userId && loading.value) {
+      loading.value = false
+      emit('success')
+    }
+  }
+)
 </script>
 
 <style scoped>

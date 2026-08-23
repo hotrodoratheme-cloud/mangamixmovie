@@ -41,7 +41,11 @@
           >
             <router-link :to="movieLink(item)" class="history-card-link">
               <div class="history-poster">
-                <img :src="item.poster" :alt="item.itemName || item.item_name" loading="lazy" />
+                <HistoryThumb
+                  type="movie"
+                  :poster="item.poster"
+                  :alt="item.itemName || item.item_name"
+                />
                 <span class="history-play">▶</span>
               </div>
               <div class="history-meta">
@@ -83,7 +87,11 @@
           >
             <router-link :to="mangaLink(item)" class="history-card-link">
               <div class="history-poster">
-                <img :src="item.poster" :alt="item.itemName || item.item_name" loading="lazy" />
+                <HistoryThumb
+                  type="manga"
+                  :poster="item.poster"
+                  :alt="item.itemName || item.item_name"
+                />
                 <span class="history-play">▶</span>
               </div>
               <div class="history-meta">
@@ -125,7 +133,11 @@
           >
             <router-link :to="mangaVnLink(item)" class="history-card-link">
               <div class="history-poster">
-                <img :src="item.poster" :alt="item.itemName || item.item_name" loading="lazy" />
+                <HistoryThumb
+                  type="manga_vn"
+                  :poster="item.poster"
+                  :alt="item.itemName || item.item_name"
+                />
                 <span class="history-play">▶</span>
               </div>
               <div class="history-meta">
@@ -152,7 +164,8 @@
         <span>Hãy xem phim hoặc đọc truyện để lưu tại đây!</span>
         <div class="empty-actions">
           <router-link to="/phim" class="btn btn-primary btn-sm">Xem phim</router-link>
-          <router-link to="/truyen" class="btn btn-ghost btn-sm">Đọc truyện</router-link>
+          <router-link to="/truyen" class="btn btn-ghost btn-sm">Truyện Mangadex</router-link>
+          <router-link to="/truyen-vn" class="btn btn-ghost btn-sm">Truyện VN</router-link>
         </div>
       </div>
     </template>
@@ -161,8 +174,9 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { localHistory, fetchCloudHistory, removeHistory, clearHistory } from '@/services/history'
+import { localHistory, fetchCloudHistory, mergeHistoryLists, removeHistory, clearHistory } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
+import HistoryThumb from '@/components/browse/HistoryThumb.vue'
 
 const { user, loading: authLoading } = useAuth()
 const movies = ref([])
@@ -211,13 +225,13 @@ function mangaVnLink(item) {
 async function loadHistory() {
   loading.value = true
   try {
+    const local = localHistory.getAll()
     if (user.value?.id) {
       const cloud = await fetchCloudHistory(user.value.id)
-      movies.value = cloud.movies
-      manga.value = cloud.manga
-      mangaVn.value = cloud.manga_vn || []
+      movies.value = mergeHistoryLists(cloud.movies, local.movies)
+      manga.value = mergeHistoryLists(cloud.manga, local.manga)
+      mangaVn.value = mergeHistoryLists(cloud.manga_vn || [], local.manga_vn || [])
     } else {
-      const local = localHistory.getAll()
       movies.value = local.movies
       manga.value = local.manga
       mangaVn.value = local.manga_vn || []
@@ -410,10 +424,10 @@ onMounted(loadHistory)
   border: 1px solid var(--border);
 }
 
-.history-poster img {
+.history-poster :deep(.history-thumb),
+.history-poster :deep(.manga-cover-wrap) {
   width: 100%;
   height: 100%;
-  object-fit: cover;
 }
 
 .history-play {

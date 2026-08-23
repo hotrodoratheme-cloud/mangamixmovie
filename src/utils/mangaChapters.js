@@ -1,27 +1,50 @@
 import { mangaApi } from '@/config/apis'
-import { proxyMangaImageUrl } from '@/utils/mangaImage'
+import { resolveMangaImageSrc } from '@/utils/mangaImage'
 
 /** Parse số chapter để sort đúng (1, 1.5, 2, 10...) */
 export function parseChapterNumber(chapter) {
-  const raw = chapter?.attributes?.chapter
+  const raw = chapter?.attributes?.chapter ?? chapter?.number
   if (raw == null || raw === '') return null
   const n = parseFloat(String(raw))
   return Number.isFinite(n) ? n : null
 }
 
 export function formatChapterLabel(chapter) {
-  const num = chapter.attributes?.chapter
-  const title = chapter.attributes?.title?.trim()
+  const num = chapter.attributes?.chapter ?? chapter?.number
+  const title = chapter.attributes?.title?.trim?.() ?? chapter?.title
   if (num && title && title !== num) return `Ch. ${num} — ${title}`
   if (num) return `Chapter ${num}`
   return title || 'Oneshot'
 }
 
 function chapterLangScore(chapter) {
-  const langs = chapter.attributes?.translatedLanguage || []
-  if (langs.includes('vi')) return 3
-  if (langs.includes('en')) return 2
+  const lang = chapter.attributes?.translatedLanguage?.[0] || chapter.lang || ''
+  if (lang === 'vi') return 3
+  if (lang === 'en') return 2
   return 1
+}
+
+function getScanGroupName(chapter, included = []) {
+  const rel = (chapter.relationships || []).find((item) => item.type === 'scanlation_group')
+  if (!rel?.id) return 'MangaDex'
+  const group = included.find((item) => item.id === rel.id && item.type === 'scanlation_group')
+  return group?.attributes?.name?.trim() || 'Nhóm dịch'
+}
+
+function mergeIncluded(items) {
+  const map = new Map()
+  for (const item of items) {
+    if (item?.id) map.set(`${item.type}:${item.id}`, item)
+  }
+  return [...map.values()]
+}
+
+function sortVariants(variants) {
+  return [...variants].sort((a, b) => {
+    const diff = chapterLangScore(b) - chapterLangScore(a)
+    if (diff) return diff
+    return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+  })
 }
 
 /** Gộp chapter trùng số, ưu tiên bản Việt rồi mới nhất */
@@ -61,45 +84,109 @@ export function sortChaptersAsc(chapters) {
     if (na != null && nb == null) return -1
     if (na == null && nb != null) return 1
 
-    const va = parseFloat(a.attributes?.volume) || 0
-    const vb = parseFloat(b.attributes?.volume) || 0
+    const va = parseFloat(a.attributes?.volume ?? a.volume) || 0
+    const vb = parseFloat(b.attributes?.volume ?? b.volume) || 0
     if (va !== vb) return va - vb
 
-    return new Date(a.attributes?.updatedAt || 0) - new Date(b.attributes?.updatedAt || 0)
+    return new Date(a.attributes?.updatedAt ?? a.updatedAt ?? 0) -
+      new Date(b.attributes?.updatedAt ?? b.updatedAt ?? 0)
   })
 }
 
-export function mapChapterItem(chapter) {
+export function sortChaptersDesc(chapters) {
+  return sortChaptersAsc(chapters).reverse()
+}
+
+export function mapChapterItem(chapter, variants = []) {
   return {
     id: chapter.id,
-    number: chapter.attributes?.chapter ?? null,
-    volume: chapter.attributes?.volume ?? null,
+    number: chapter.attributes?.chapter ?? chapter.number ?? null,
+    volume: chapter.attributes?.volume ?? chapter.volume ?? null,
     title: formatChapterLabel(chapter),
-    pages: chapter.attributes?.pages ?? 0,
-    lang: chapter.attributes?.translatedLanguage?.[0] || '',
-    updatedAt: chapter.attributes?.updatedAt,
+    pages: chapter.attributes?.pages ?? chapter.pages ?? 0,
+    lang: chapter.attributes?.translatedLanguage?.[0] || chapter.lang || '',
+    updatedAt: chapter.attributes?.updatedAt ?? chapter.updatedAt,
+    variants,
   }
 }
 
-export async function fetchMangaChapters(axios, mangaId) {
+export function sortChapterItemsDesc(items) {
+  return [...items].sort((a, b) => {
+    const na = parseFloat(a.number)
+    const nb = parseFloat(b.number)
+    if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return nb - na
+    if (Number.isFinite(na) && !Number.isFinite(nb)) return -1
+    if (!Number.isFinite(na) && Number.isFinite(nb)) return 1
+    return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+  })
+}
+
+export function buildChapterCatalog(rawChapters, included = []) {
+  const filtered = rawChapters
+    .filter((ch) => !ch.attributes?.externalUrl)
+    .filter((ch) => (ch.attributes?.pages ?? 0) > 0)
+
+  const grouped = new Map()
+
+  for (const ch of filtered) {
+    const key = ch.attributes?.chapter ?? ch.id
+    if (!grouped.has(key)) grouped.set(key, { sample: ch, variants: [] })
+    const bucket = grouped.get(key)
+    bucket.variants.push({
+      id: ch.id,
+      lang: ch.attributes?.translatedLanguage?.[0] || '??',
+      groupName: getScanGroupName(ch, included),
+      pages: ch.attributes?.pages ?? 0,
+      updatedAt: ch.attributes?.updatedAt,
+    })
+  }
+
+  const catalog = [...grouped.values()].map(({ sample, variants }) => {
+    const sorted = sortVariants(variants)
+    const best = sorted[0]
+    return mapChapterItem(
+      {
+        ...sample,
+        id: best.id,
+        attributes: {
+          ...sample.attributes,
+          translatedLanguage: [best.lang],
+        },
+      },
+      sorted
+    )
+  })
+
+  return sortChaptersAsc(catalog)
+}
+
+async function fetchRawChapters(axios, mangaId, options = {}) {
   const all = []
+  let included = []
   const limit = 500
   let offset = 0
   let total = Infinity
 
   while (offset < total) {
-    const { data } = await axios.get(mangaApi.chapters(mangaId, limit, offset))
+    const { data } = await axios.get(mangaApi.chapters(mangaId, limit, offset, options))
     total = data.total ?? 0
     all.push(...(data.data || []))
+    included = included.concat(data.included || [])
     if (!data.data?.length || all.length >= total) break
     offset += limit
   }
 
-  const sorted = sortChaptersAsc(dedupeChapters(all))
-  return sorted
-    .filter((ch) => !ch.attributes?.externalUrl)
-    .filter((ch) => (ch.attributes?.pages ?? 0) > 0)
-    .map(mapChapterItem)
+  return { chapters: all, included: mergeIncluded(included) }
+}
+
+export async function fetchMangaChapterCatalog(axios, mangaId, options = {}) {
+  const { chapters, included } = await fetchRawChapters(axios, mangaId, options)
+  return buildChapterCatalog(chapters, included)
+}
+
+export async function fetchMangaChapters(axios, mangaId) {
+  const catalog = await fetchMangaChapterCatalog(axios, mangaId)
+  return catalog.map(({ variants, ...item }) => item)
 }
 
 export function buildChapterImageUrls(atHomeResponse) {
@@ -121,7 +208,7 @@ export function buildChapterImageUrls(atHomeResponse) {
 
   return files.map((file) => {
     const direct = `${base}/${folder}/${hash}/${file}`
-    return proxyMangaImageUrl(direct)
+    return resolveMangaImageSrc(direct)
   })
 }
 
@@ -134,7 +221,6 @@ export async function fetchChapterImages(axios, chapterId) {
 
   let urls = buildChapterImageUrls(data)
 
-  // Thử data-saver nếu data rỗng (một số CDN trả về ngược)
   if (!urls.length && data.chapter?.dataSaver?.length) {
     urls = buildChapterImageUrls({
       ...data,
@@ -151,4 +237,19 @@ export async function fetchChapterImages(axios, chapterId) {
   }
 
   return urls
+}
+
+export function findChapterIndexById(catalog, chapterId) {
+  if (!chapterId) return 0
+  const idx = catalog.findIndex(
+    (ch) => ch.id === chapterId || ch.variants?.some((v) => v.id === chapterId)
+  )
+  return idx >= 0 ? idx : 0
+}
+
+export function resolveChapterId(catalog, chapterIndex, chapterId) {
+  const row = catalog[chapterIndex]
+  if (!row) return chapterId
+  if (chapterId && row.variants?.some((v) => v.id === chapterId)) return chapterId
+  return row.id
 }

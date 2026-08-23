@@ -1,9 +1,5 @@
 <template>
   <div class="manga-detail">
-    <div class="container detail-nav">
-      <button class="btn btn-ghost btn-sm" @click="goBack('/truyen')">← Quay lại</button>
-    </div>
-
     <div v-if="loading" class="loading-text">Đang tải truyện...</div>
     <div v-else-if="error" class="error-text">{{ error }}</div>
 
@@ -16,14 +12,24 @@
           <span v-if="manga.status" class="status-tag">{{ manga.status }}</span>
           <h1>{{ manga.title }}</h1>
           <p v-if="manga.altTitle" class="alt-title">{{ manga.altTitle }}</p>
+          <div v-if="manga.genres.length" class="genre-links">
+            <router-link
+              v-for="genre in manga.genres"
+              :key="genre.id"
+              :to="genreTo(genre)"
+              class="genre-link"
+            >
+              {{ genre.label }}
+            </router-link>
+          </div>
           <p v-if="manga.authors" class="meta">Tác giả: {{ manga.authors }}</p>
           <p class="meta">{{ chapters.length }} chapter · {{ manga.year || '—' }}</p>
 
           <div class="hero-actions">
             <button
-              v-if="chapters.length"
+              v-if="firstChapter"
               class="btn btn-primary"
-              @click="readChapter(chapters[0])"
+              @click="readChapter(firstChapter)"
             >
               ▶ Đọc từ đầu
             </button>
@@ -34,11 +40,32 @@
             >
               ↪ Tiếp tục đọc
             </button>
+            <FavoriteButton
+              type="manga"
+              :item-id="String(route.params.id)"
+              :item-name="manga.title"
+              :poster="manga.cover"
+              variant="label"
+            />
           </div>
         </div>
       </section>
 
       <div class="container detail-body">
+        <section v-if="manga.genres.length" class="info-block">
+          <h2>Thể loại</h2>
+          <div class="genre-links">
+            <router-link
+              v-for="genre in manga.genres"
+              :key="genre.id"
+              :to="genreTo(genre)"
+              class="genre-link"
+            >
+              {{ genre.label }}
+            </router-link>
+          </div>
+        </section>
+
         <section v-if="manga.description" class="info-block">
           <h2>Nội dung</h2>
           <p class="description">{{ manga.description }}</p>
@@ -74,15 +101,23 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { mangaApi } from '@/config/apis'
 import MangaCover from '@/components/browse/MangaCover.vue'
-import { getMangaTitle, getMangaDescription, getMangaCover } from '@/utils/mediaHelper'
-import { fetchMangaChapters } from '@/utils/mangaChapters'
+import {
+  getMangaTitle,
+  getMangaDescription,
+  getMangaCover,
+  getMangaGenres,
+} from '@/utils/mediaHelper'
+import { fetchMangaChapters, sortChapterItemsDesc } from '@/utils/mangaChapters'
+import { fetchMangaTags } from '@/utils/mangaMapper'
+import { buildMangaTagIndex, mangaGenrePath } from '@/utils/mangaTags'
 import { useNavBack } from '@/composables/useNavBack'
 import { localHistory } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
+import FavoriteButton from '@/components/favorites/FavoriteButton.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { goBack, preserveQuery } = useNavBack('/truyen')
+const { preserveQuery } = useNavBack('/truyen')
 const { user } = useAuth()
 
 const manga = ref({
@@ -93,10 +128,17 @@ const manga = ref({
   status: '',
   year: '',
   authors: '',
+  genres: [],
 })
 const chapters = ref([])
+const tagIndex = ref(buildMangaTagIndex([]))
 const loading = ref(true)
 const error = ref('')
+
+const firstChapter = computed(() => {
+  if (!chapters.value.length) return null
+  return chapters.value[chapters.value.length - 1]
+})
 
 const continueChapter = computed(() => {
   const history = localHistory.getAll().manga
@@ -113,30 +155,40 @@ function readChapter(ch) {
   })
 }
 
+function genreTo(genre) {
+  const tag = tagIndex.value.byId[genre.id]
+  return mangaGenrePath(tag || genre)
+}
+
 async function loadDetail() {
   loading.value = true
   error.value = ''
 
   try {
-    const [detailRes, chapterList] = await Promise.all([
+    const [detailRes, chapterList, tagList] = await Promise.all([
       axios.get(mangaApi.detail(route.params.id)),
       fetchMangaChapters(axios, route.params.id),
+      fetchMangaTags(axios).catch(() => []),
     ])
 
     const d = detailRes.data.data
     const attrs = d.attributes
+    const included = detailRes.data.included || []
+    const tagMap = Object.fromEntries(tagList.map((tag) => [tag.id, tag.label]))
+    tagIndex.value = buildMangaTagIndex(tagList)
 
     manga.value = {
       title: getMangaTitle(attrs),
       altTitle: attrs.title?.ja || attrs.title?.en || '',
-      cover: getMangaCover(route.params.id, d.relationships, detailRes.data.included || []),
+      cover: getMangaCover(route.params.id, d.relationships, included),
       description: getMangaDescription(attrs),
       status: attrs.status === 'ongoing' ? 'Đang ra' : attrs.status === 'completed' ? 'Hoàn thành' : 'Tạm ngưng',
       year: attrs.year || '',
-      authors: getAuthorNames(d.relationships, detailRes.data.included),
+      authors: getAuthorNames(d.relationships, included),
+      genres: getMangaGenres(d.relationships, included, tagMap, attrs),
     }
 
-    chapters.value = chapterList
+    chapters.value = sortChapterItemsDesc(chapterList)
   } catch {
     error.value = 'Không thể tải thông tin truyện.'
   } finally {
@@ -166,12 +218,7 @@ onMounted(loadDetail)
 
 <style scoped>
 .manga-detail {
-  padding-bottom: 48px;
-}
-
-.detail-nav {
-  padding-top: 16px;
-  padding-bottom: 8px;
+  padding: 16px 0 48px;
 }
 
 .detail-hero {
@@ -216,6 +263,29 @@ onMounted(loadDetail)
   font-size: 0.9375rem;
 }
 
+.genre-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.genre-link {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.genre-link:hover {
+  background: var(--accent);
+  color: #1a1200;
+}
+
 .meta {
   color: var(--text-muted);
   font-size: 0.875rem;
@@ -227,6 +297,16 @@ onMounted(loadDetail)
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 20px;
+  align-items: center;
+}
+
+.hero-actions .btn,
+.hero-actions :deep(.favorite-btn--label) {
+  min-height: 42px;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .detail-body {
@@ -315,6 +395,10 @@ onMounted(loadDetail)
   .hero-cover {
     max-width: 180px;
     margin: 0 auto;
+  }
+
+  .genre-links {
+    justify-content: center;
   }
 
   .hero-actions {

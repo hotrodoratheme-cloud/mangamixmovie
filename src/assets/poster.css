@@ -1,5 +1,10 @@
 /* HoatHinh3D-style poster cards */
 
+.poster-card {
+  display: block;
+  width: 100%;
+}
+
 .poster-card-link {
   display: block;
   width: 100%;
@@ -22,7 +27,8 @@
   box-shadow: 0 12px 32px var(--accent-glow);
 }
 
-.poster-thumb img {
+.poster-thumb img,
+.poster-thumb .manga-cover-wrap {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -33,7 +39,8 @@
   transition: transform 0.35s;
 }
 
-.poster-card-link:hover .poster-thumb img {
+.poster-card-link:hover .poster-thumb img,
+.poster-card-link:hover .poster-thumb .manga-cover-img {
   transform: scale(1.06);
 }
 
@@ -116,6 +123,84 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.poster-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.poster-genres--line {
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.poster-genres--line .genre-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: calc(50% - 8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.genre-more {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.genre-chip {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  line-height: 1.4;
+}
+
+.poster-manga-extra {
+  padding: 0 4px;
+}
+
+.poster-manga-extra .sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poster-chapters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.chapter-link {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+.chapter-link:hover {
+  color: var(--accent);
 }
 
 /* Swiper */

@@ -15,22 +15,35 @@ export function useRouteSearch(onSearch, debounceMs = 500) {
     onSearch()
   }, debounceMs)
 
+  function currentRouteQ() {
+    const q = route.query.q
+    if (q == null) return ''
+    return String(Array.isArray(q) ? q[0] : q)
+  }
+
   function syncRoute() {
     if (skipRoute.value) return
-    const q = query.value.trim() || undefined
-    router.replace({ path: route.path, query: q ? { q } : {} })
+    const q = query.value.trim()
+    if (q === currentRouteQ()) return
+
+    const nextQuery = { ...route.query }
+    if (q) nextQuery.q = q
+    else delete nextQuery.q
+
+    router.replace({ path: route.path, query: nextQuery })
   }
 
   function applyQueryFromRoute() {
-    const next = route.query.q ? String(route.query.q) : ''
+    const next = currentRouteQ()
     if (next === query.value) return
     skipRoute.value = true
     query.value = next
-    onSearch()
     skipRoute.value = false
+    onSearch()
   }
 
   watch(query, (val) => {
+    if (skipRoute.value) return
     if (val.trim()) {
       debouncedSearch()
     } else {
@@ -40,17 +53,13 @@ export function useRouteSearch(onSearch, debounceMs = 500) {
     syncRoute()
   })
 
-  watch(() => route.query.q, () => {
-    applyQueryFromRoute()
-  })
+  watch(() => route.query.q, applyQueryFromRoute)
 
   onMounted(() => {
     skipRoute.value = true
-    if (route.query.q) {
-      query.value = String(route.query.q)
-      onSearch()
-    }
+    query.value = currentRouteQ()
     skipRoute.value = false
+    if (query.value) onSearch()
   })
 
   function clearSearch() {

@@ -18,6 +18,7 @@
   --shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
   --radius: 10px;
   --header-h: 70px;
+  --layout-mobile: 1024px;
 }
 
 [data-theme='dark'] {

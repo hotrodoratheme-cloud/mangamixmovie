@@ -45,13 +45,14 @@
       <FeaturedSpotlight :item="featured" :side-items="sideItems" />
 
       <div v-if="homeLoading" class="loading-text">Đang tải danh mục...</div>
+      <div v-else-if="homeError" class="container error-text">{{ homeError }}</div>
 
       <div v-else class="container home-sections">
         <UpdateGrid
           v-if="updateItems.length"
           title="Mới cập nhật"
           :items="updateItems"
-          :see-all-to="{ path: '/truyen-vn/danh-muc/truyen-moi' }"
+          :see-all-to="{ name: 'truyen-vn-list', params: { type: 'truyen-moi' } }"
         />
 
         <MediaRow
@@ -68,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import SearchBar from '@/components/search/SearchBar.vue'
@@ -81,8 +82,12 @@ import PosterCard from '@/components/browse/PosterCard.vue'
 import { OTRUYEN_LIST_TYPES, OTRUYEN_FEATURED_GENRES } from '@/config/apis'
 import { fetchOtruyenList, fetchOtruyenGenreList, fetchOtruyenGenres, searchOtruyen, fetchOtruyenDetail, fetchOtruyenHome } from '@/utils/otruyenMapper'
 import { useRouteSearch } from '@/composables/useRouteSearch'
+import { useFavorites } from '@/composables/useFavorites'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { ensureLoaded } = useFavorites()
+const { user, loading: authLoading } = useAuth()
 
 const genres = ref([])
 const results = ref([])
@@ -92,6 +97,7 @@ const sideItems = ref([])
 const updateItems = ref([])
 const loading = ref(false)
 const homeLoading = ref(true)
+const homeError = ref('')
 const error = ref('')
 const searchPage = ref(1)
 const totalPages = ref(1)
@@ -137,38 +143,44 @@ const swiperRows = computed(() =>
 
 async function loadHome() {
   homeLoading.value = true
-  try {
-    const [genreList, homeData, ...listResults] = await Promise.all([
-      fetchOtruyenGenres(axios),
-      fetchOtruyenHome(axios),
-      ...OTRUYEN_LIST_TYPES.slice(1).map((t) => fetchOtruyenList(axios, t.key)),
-      ...OTRUYEN_FEATURED_GENRES.slice(0, 4).map((g) =>
-        fetchOtruyenGenreList(axios, g.slug)
-      ),
-    ])
+  homeError.value = ''
 
+  try {
+    const genreList = await fetchOtruyenGenres(axios).catch(() => [])
     genres.value = genreList.length
       ? genreList
       : OTRUYEN_FEATURED_GENRES.map((g) => ({ slug: g.slug, label: g.label }))
+
+    const featuredGenres = genres.value.slice(0, 4)
+    const [homeData, ...listResults] = await Promise.all([
+      fetchOtruyenHome(axios),
+      ...OTRUYEN_LIST_TYPES.slice(1).map((t) => fetchOtruyenList(axios, t.key)),
+      ...featuredGenres.map((g) => fetchOtruyenGenreList(axios, g.slug)),
+    ])
 
     const listByType = OTRUYEN_LIST_TYPES.slice(1).map((t, i) => ({
       key: t.key,
       title: t.label,
       items: listResults[i]?.items || [],
-      seeAllTo: { path: `/truyen-vn/danh-muc/${t.key}` },
+      seeAllTo: { name: 'truyen-vn-list', params: { type: t.key } },
     }))
 
     const genreStart = OTRUYEN_LIST_TYPES.length - 1
-    const genreRows = OTRUYEN_FEATURED_GENRES.slice(0, 4).map((g, i) => ({
+    const genreRows = featuredGenres.map((g, i) => ({
       key: g.slug,
       title: g.label,
       items: listResults[genreStart + i]?.items || [],
-      seeAllTo: { path: `/truyen-vn/the-loai/${g.slug}` },
+      seeAllTo: { name: 'truyen-vn-genre', params: { slug: g.slug } },
     }))
 
     rows.value = listByType.concat(genreRows)
 
     const latest = homeData.items.length ? homeData.items : listResults[0]?.items || []
+    if (!latest.length) {
+      homeError.value = 'Không thể tải truyện VN. Thử tải lại trang.'
+      return
+    }
+
     updateItems.value = latest.slice(0, 12)
     featured.value = latest[0] || null
     sideItems.value = latest.slice(1, 5)
@@ -178,6 +190,7 @@ async function loadHome() {
     }
   } catch (err) {
     console.error(err)
+    homeError.value = 'Không thể tải truyện VN. Kiểm tra kết nối mạng và thử lại.'
   } finally {
     homeLoading.value = false
   }
@@ -207,6 +220,14 @@ function onGenreSelect(slug) {
   if (slug) router.push(`/truyen-vn/the-loai/${slug}`)
 }
 
+watch(
+  () => [user.value?.id, authLoading.value],
+  () => {
+    if (!authLoading.value && user.value?.id) ensureLoaded()
+  },
+  { immediate: true }
+)
+
 loadHome()
 </script>
 
@@ -227,7 +248,7 @@ loadHome()
   display: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .page-search {
     display: flex;
   }

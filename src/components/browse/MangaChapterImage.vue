@@ -1,10 +1,10 @@
 <template>
   <div
     ref="rootRef"
-    class="manga-cover-wrap"
+    class="manga-chapter-wrap"
     :class="{
       'is-loading': showLoading,
-      'is-loaded': loaded && !failed,
+      'is-loaded': loaded,
       'is-error': failed,
     }"
   >
@@ -13,7 +13,7 @@
     </div>
     <img
       v-if="imageSrc"
-      class="manga-cover-img"
+      class="manga-chapter-img"
       :src="imageSrc"
       :alt="alt"
       decoding="async"
@@ -21,47 +21,33 @@
       @load="loaded = true"
       @error="onError"
     />
-    <img
-      v-else-if="failed"
-      class="manga-cover-img manga-cover-img--error"
-      :src="MANGA_PLACEHOLDER"
-      :alt="alt"
-      decoding="async"
-    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { MANGA_PLACEHOLDER, resolveMangaImageSrc, proxyMangaImageUrl } from '@/utils/mangaImage'
+import { resolveMangaImageSrc, proxyMangaImageUrl } from '@/utils/mangaImage'
 import { useLazyReveal } from '@/composables/useLazyReveal'
 
 const props = defineProps({
   url: { type: String, default: '' },
   alt: { type: String, default: '' },
-  loading: { type: String, default: 'lazy' },
-  useProxyFallback: { type: Boolean, default: true },
-  rootMargin: { type: String, default: '240px 0px' },
+  rootMargin: { type: String, default: '480px 0px' },
 })
 
-const eager = computed(() => props.loading === 'eager')
-const { rootRef, isVisible } = useLazyReveal({
-  immediate: props.loading === 'eager',
-  rootMargin: props.rootMargin,
-})
+const emit = defineEmits(['error'])
 
-const shouldLoad = computed(() => eager.value || isVisible.value)
+const { rootRef, isVisible } = useLazyReveal({ rootMargin: props.rootMargin })
+const shouldLoad = computed(() => isVisible.value)
 const hasUrl = computed(() => Boolean(props.url?.trim()))
 const resolvedSrc = ref('')
 const loaded = ref(false)
 const failed = ref(false)
-let triedOriginal = false
+let retried = false
 
 const imageSrc = computed(() => {
   if (!shouldLoad.value || failed.value) return ''
-  const src = resolvedSrc.value
-  if (!src || src === MANGA_PLACEHOLDER) return ''
-  return src
+  return resolvedSrc.value || ''
 })
 
 const showLoading = computed(() => {
@@ -70,8 +56,8 @@ const showLoading = computed(() => {
   return Boolean(imageSrc.value) && !loaded.value
 })
 
-function resetState() {
-  triedOriginal = false
+function activateSrc() {
+  retried = false
   loaded.value = false
   failed.value = !hasUrl.value
   resolvedSrc.value = hasUrl.value ? resolveMangaImageSrc(props.url) : ''
@@ -80,39 +66,51 @@ function resetState() {
 function onError() {
   if (!shouldLoad.value) return
 
-  const current = resolvedSrc.value
-  if (current === MANGA_PLACEHOLDER || current.startsWith('data:image/svg+xml')) return
-
-  if (!triedOriginal && props.url?.includes('.512.jpg')) {
-    triedOriginal = true
-    const original = props.url.replace(/\.512\.jpg$/i, '.jpg')
-    resolvedSrc.value = resolveMangaImageSrc(original)
-    loaded.value = false
-    return
-  }
-
-  if (props.useProxyFallback && props.url?.startsWith('https://') && !current.includes('/api/manga-image')) {
+  if (!retried && props.url?.startsWith('https://') && !resolvedSrc.value.includes('/api/manga-image')) {
+    retried = true
     resolvedSrc.value = proxyMangaImageUrl(props.url)
     loaded.value = false
     return
   }
 
   failed.value = true
-  resolvedSrc.value = ''
   loaded.value = false
+  emit('error')
 }
 
-watch(() => props.url, resetState, { immediate: true })
+watch(
+  () => props.url,
+  () => {
+    if (shouldLoad.value) activateSrc()
+    else {
+      resolvedSrc.value = ''
+      loaded.value = false
+      failed.value = false
+    }
+  }
+)
+
+watch(shouldLoad, (visible) => {
+  if (visible) activateSrc()
+})
 </script>
 
 <style scoped>
-.manga-cover-wrap {
+.manga-chapter-wrap {
   position: relative;
   display: block;
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  min-height: 160px;
   background: var(--bg-hover);
+}
+
+.manga-chapter-wrap.is-loaded {
+  min-height: 0;
+}
+
+.manga-chapter-wrap.is-error {
+  min-height: 120px;
+  background: var(--bg-card);
 }
 
 .manga-media-loading {
@@ -121,6 +119,7 @@ watch(() => props.url, resetState, { immediate: true })
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: inherit;
   background: linear-gradient(
     90deg,
     var(--bg-hover) 0%,
@@ -133,25 +132,19 @@ watch(() => props.url, resetState, { immediate: true })
 }
 
 .manga-media-spinner {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border: 2px solid var(--border);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: manga-media-spin 0.75s linear infinite;
 }
 
-.manga-cover-img {
+.manga-chapter-img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.manga-cover-img--error {
-  object-fit: contain;
-  background: var(--bg-hover);
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 @keyframes manga-media-shimmer {

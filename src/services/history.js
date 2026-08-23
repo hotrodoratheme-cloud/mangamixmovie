@@ -1,5 +1,60 @@
 const STORAGE_KEY = 'mmx_history_v1'
 
+function normalizeItemId(id) {
+  if (id == null) return ''
+  const text = String(id).trim()
+  if (!text || text === 'undefined') return ''
+  return text
+}
+
+export function getHistoryEntryId(item) {
+  return normalizeItemId(item?.itemId ?? item?.item_id)
+}
+
+function rowTimestamp(item) {
+  const value = item?.updatedAt || item?.updated_at
+  const ts = value ? new Date(value).getTime() : 0
+  return Number.isNaN(ts) ? 0 : ts
+}
+
+function normalizeHistoryRow(item, id = getHistoryEntryId(item)) {
+  if (!id) return null
+
+  return {
+    ...item,
+    itemId: id,
+    item_id: id,
+    itemName: item.itemName || item.item_name || '',
+    item_name: item.itemName || item.item_name || '',
+    episodeSlug: item.episodeSlug || item.episode_slug || null,
+    episode_slug: item.episodeSlug || item.episode_slug || null,
+    chapterId: item.chapterId || item.chapter_id || null,
+    chapter_id: item.chapterId || item.chapter_id || null,
+    updatedAt: item.updatedAt || item.updated_at || new Date().toISOString(),
+    updated_at: item.updatedAt || item.updated_at || new Date().toISOString(),
+  }
+}
+
+export function dedupeHistoryRows(rows = []) {
+  const map = new Map()
+
+  for (const item of rows) {
+    const normalized = normalizeHistoryRow(item)
+    if (!normalized) continue
+
+    const prev = map.get(normalized.itemId)
+    if (!prev || rowTimestamp(normalized) >= rowTimestamp(prev)) {
+      map.set(normalized.itemId, normalized)
+    }
+  }
+
+  return Array.from(map.values())
+}
+
+export function mergeHistoryLists(cloudRows = [], localRows = []) {
+  return dedupeHistoryRows([...(localRows || []), ...(cloudRows || [])])
+}
+
 function readStore() {
   try {
     return JSON.parse(
@@ -15,16 +70,31 @@ function writeStore(data) {
 }
 
 function upsertItem(list, item, key = 'itemId') {
-  const idx = list.findIndex((i) => i[key] === item[key])
-  const entry = { ...item, updatedAt: new Date().toISOString() }
-  if (idx >= 0) list[idx] = entry
-  else list.unshift(entry)
-  return list.slice(0, 50)
+  const normalized = normalizeHistoryRow(item)
+  if (!normalized) return list
+
+  const idx = list.findIndex((i) => getHistoryEntryId(i) === normalized.itemId)
+  if (idx >= 0) list[idx] = normalized
+  else list.unshift(normalized)
+  return dedupeHistoryRows(list).slice(0, 50)
+}
+
+function compactStore(store) {
+  return {
+    movies: dedupeHistoryRows(store.movies || []),
+    manga: dedupeHistoryRows(store.manga || []),
+    manga_vn: dedupeHistoryRows(store.manga_vn || []),
+  }
 }
 
 export const localHistory = {
   getAll() {
-    return readStore()
+    const store = readStore()
+    const compacted = compactStore(store)
+    if (JSON.stringify(compacted) !== JSON.stringify(store)) {
+      writeStore(compacted)
+    }
+    return compacted
   },
 
   saveMovie(data) {
@@ -50,10 +120,13 @@ export const localHistory = {
   },
 
   removeItem(type, itemId) {
+    const targetId = normalizeItemId(itemId)
+    if (!targetId) return []
+
     const store = readStore()
     const key =
       type === 'movie' ? 'movies' : type === 'manga_vn' ? 'manga_vn' : 'manga'
-    store[key] = (store[key] || []).filter((i) => (i.itemId || i.item_id) !== itemId)
+    store[key] = (store[key] || []).filter((i) => getHistoryEntryId(i) !== targetId)
     writeStore(store)
     return store[key]
   },
@@ -86,9 +159,9 @@ export async function fetchCloudHistory(userId) {
 
   if (error) throw error
 
-  const movies = data.filter((i) => i.type === 'movie')
-  const manga = data.filter((i) => i.type === 'manga')
-  const manga_vn = data.filter((i) => i.type === 'manga_vn')
+  const movies = dedupeHistoryRows(data.filter((i) => i.type === 'movie'))
+  const manga = dedupeHistoryRows(data.filter((i) => i.type === 'manga'))
+  const manga_vn = dedupeHistoryRows(data.filter((i) => i.type === 'manga_vn'))
   return { movies, manga, manga_vn }
 }
 
@@ -151,11 +224,14 @@ export async function deleteAllCloudHistory(userId) {
 }
 
 export async function removeHistory(userId, type, itemId) {
-  localHistory.removeItem(type, itemId)
+  const targetId = normalizeItemId(itemId)
+  if (!targetId) return
+
+  localHistory.removeItem(type, targetId)
 
   if (userId) {
     try {
-      await deleteCloudHistoryItem(userId, type, itemId)
+      await deleteCloudHistoryItem(userId, type, targetId)
     } catch (err) {
       console.warn('Cloud history delete failed:', err.message)
     }
@@ -187,17 +263,22 @@ export async function clearHistory(userId, scope) {
 }
 
 export async function saveHistory(userId, payload) {
+  const itemId = normalizeItemId(payload.itemId ?? payload.item_id)
+  if (!itemId) return
+
+  const normalized = { ...payload, itemId }
+
   if (payload.type === 'movie') {
-    localHistory.saveMovie(payload)
+    localHistory.saveMovie(normalized)
   } else if (payload.type === 'manga_vn') {
-    localHistory.saveMangaVn(payload)
+    localHistory.saveMangaVn(normalized)
   } else {
-    localHistory.saveManga(payload)
+    localHistory.saveManga(normalized)
   }
 
   if (userId) {
     try {
-      await saveCloudHistory(userId, payload)
+      await saveCloudHistory(userId, normalized)
     } catch (err) {
       console.warn('Cloud history sync failed:', err.message)
     }

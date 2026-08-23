@@ -19,9 +19,10 @@ export function mapMovieItems(items, imageDomain = 'https://phimimg.com') {
 export function mapMovieItem(item, imageDomain = 'https://phimimg.com') {
   const episode = item.episode_current || null
   const quality = item.quality || item.lang || null
+  const slug = item.slug || item._id
 
   return {
-    id: item.slug,
+    id: slug,
     title: item.name,
     subtitle: item.origin_name || String(item.year || ''),
     cover: buildImageMovieUrl(imageDomain, item.thumb_url || item.poster_url),
@@ -30,57 +31,66 @@ export function mapMovieItem(item, imageDomain = 'https://phimimg.com') {
     isNew: isRecent(item.time) || item.chieurap === true,
     description: stripHtml(item.content).slice(0, 220),
     year: item.year,
-    to: { path: `/phim/${item.slug}` },
+    to: { path: `/phim/${slug}` },
   }
 }
 
-export async function fetchMovieList(axios, type, page = 1) {
-  const { movieApi } = await import('@/config/apis')
-  const { data } = await axios.get(movieApi.list(type, page))
-  const items = data?.data?.items || []
-  const imageDomain = data?.data?.APP_DOMAIN_CDN_IMAGE || 'https://phimimg.com'
-  const pagination = data?.data?.params?.pagination || data?.data?.pagination || {}
+function extractMovieList(data, fallbackTitle) {
+  const payload = data?.data || data || {}
+  const items = payload.items || []
+  const imageDomain = payload.APP_DOMAIN_CDN_IMAGE || 'https://phimimg.com'
+  const pagination = payload.params?.pagination || payload.pagination || {}
   return {
-    title: data?.data?.titlePage || type,
-    items: mapMovieItems(items, imageDomain),
+    title: payload.titlePage || fallbackTitle,
+    items: mapMovieItems(items, imageDomain).filter((item) => item.id),
     pagination,
   }
 }
 
-export async function fetchGenreList(axios, slug, page = 1) {
+export async function fetchMovieList(axios, type, page = 1, filters = {}) {
   const { movieApi } = await import('@/config/apis')
-  const { data } = await axios.get(movieApi.genreList(slug, page))
-  const items = data?.data?.items || []
-  const imageDomain = data?.data?.APP_DOMAIN_CDN_IMAGE || 'https://phimimg.com'
-  const pagination = data?.data?.params?.pagination || data?.data?.pagination || {}
-  return {
-    title: data?.data?.titlePage || slug,
-    items: mapMovieItems(items, imageDomain),
-    pagination,
-  }
+  const { data } = await axios.get(movieApi.list(type, page, filters))
+  return extractMovieList(data, type)
+}
+
+export async function fetchGenreList(axios, slug, page = 1, filters = {}) {
+  const { movieApi } = await import('@/config/apis')
+  const { data } = await axios.get(movieApi.genreList(slug, page, filters))
+  return extractMovieList(data, slug)
 }
 
 export async function fetchGenres(axios) {
   const { movieApi } = await import('@/config/apis')
   const { data } = await axios.get(movieApi.genres())
-  return (data?.data?.items || []).map((g) => ({
+  return (data?.data?.items || data?.items || []).map((g) => ({
     slug: g.slug,
     label: g.name,
   }))
 }
 
+export async function fetchCountries(axios) {
+  const { movieApi } = await import('@/config/apis')
+  const { data } = await axios.get(movieApi.countries())
+  return (data?.data?.items || data?.items || [])
+    .map((c) => ({
+      slug: c.slug,
+      label: c.name,
+    }))
+    .filter((c) => c.slug && c.label)
+    .sort((a, b) => a.label.localeCompare(b.label, 'vi'))
+}
+
 export async function searchMovies(axios, keyword, page = 1) {
   const { movieApi } = await import('@/config/apis')
   const { data } = await axios.get(movieApi.search(keyword, page))
-  const items = data?.data?.items || []
-  const imageDomain = data?.data?.APP_DOMAIN_CDN_IMAGE || 'https://phimimg.com'
-  const pagination = data?.data?.params?.pagination || data?.data?.pagination || {}
+  const result = extractMovieList(data, keyword)
+  const pagination = result.pagination
   return {
-    items: mapMovieItems(items, imageDomain),
+    items: result.items,
     pagination: {
       currentPage: pagination.currentPage || page,
       totalPages: pagination.totalPages || 1,
-      totalItems: pagination.totalItems || items.length,
+      totalItems: pagination.totalItems || result.items.length,
     },
   }
 }
