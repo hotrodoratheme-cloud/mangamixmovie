@@ -1,7 +1,7 @@
 <template>
   <Transition name="nav-back">
     <button
-      v-if="fallback"
+      v-if="showBackButton"
       type="button"
       class="nav-back-btn"
       aria-label="Quay lại"
@@ -22,9 +22,11 @@ const route = useRoute()
 const { goBack } = useNavBack('/')
 
 const fallback = computed(() => route.meta.backTo || '')
+const isReaderPage = computed(() => route.path.includes('/doc'))
+const showBackButton = computed(() => fallback.value && !isReaderPage.value)
 
 function onBack() {
-  if (!fallback.value) return
+  if (!showBackButton.value) return
   goBack(fallback.value)
 }
 </script>

@@ -84,7 +84,6 @@
               {{ ch.title }}
             </option>
           </select>
-          <span class="chapter-progress">{{ currentIndex + 1 }} / {{ chapters.length }}</span>
         </div>
 
         <button
@@ -446,9 +445,8 @@ onMounted(init)
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
 }
 
 .chapter-picker select {
@@ -462,12 +460,6 @@ onMounted(init)
   font-size: 0.8125rem;
   font-weight: 600;
   text-align: center;
-}
-
-.chapter-progress {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-  font-weight: 600;
 }
 
 @media (max-width: 480px) {
