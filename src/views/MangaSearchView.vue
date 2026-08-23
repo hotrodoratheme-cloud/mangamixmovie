@@ -15,7 +15,10 @@
           <h2>Kết quả: "{{ query }}"</h2>
           <p v-if="!loading && totalItems" class="result-count">{{ totalItems }} truyện</p>
         </div>
-        <button class="btn btn-ghost btn-sm" @click="clearSearch">✕ Xóa tìm kiếm</button>
+        <button class="btn btn-ghost btn-sm clear-search-btn" @click="clearSearch">
+          <AppIcon name="close" :size="14" />
+          Xóa tìm kiếm
+        </button>
       </div>
 
       <LoadingSkeleton v-if="loading" variant="grid" :count="8" />
@@ -75,6 +78,8 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'MangaSearchView' })
+
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
 import SearchBar from '@/components/search/SearchBar.vue'
@@ -86,6 +91,7 @@ import MediaRow from '@/components/browse/MediaRow.vue'
 import PosterCard from '@/components/browse/PosterCard.vue'
 import ContinueSection from '@/components/browse/ContinueSection.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 import { mangaApi, MANGA_FEATURED_TAGS } from '@/config/apis'
 import { fetchMangaList, searchManga } from '@/utils/mangaMapper'
 import { useRouteSearch } from '@/composables/useRouteSearch'
@@ -251,13 +257,9 @@ watch(
   padding-bottom: 48px;
 }
 
-.page-search {
-  display: none;
-}
-
 @media (max-width: 1024px) {
   .page-search {
-    display: flex;
+    display: none;
   }
 }
 

@@ -60,12 +60,18 @@
       </section>
 
       <div v-if="totalPages > 1" class="container pagination">
-        <button class="btn btn-ghost btn-sm" :disabled="page <= 1" @click="goPage(page - 1)">
-          ← Trang trước
+        <button class="btn btn-ghost btn-sm btn-icon-inline" :disabled="page <= 1" @click="goPage(page - 1)">
+          <AppIcon name="chevron-left" :size="16" />
+          Trang trước
         </button>
         <span class="page-info">Trang {{ page }} / {{ totalPages }}</span>
-        <button class="btn btn-ghost btn-sm" :disabled="page >= totalPages" @click="goPage(page + 1)">
-          Trang sau →
+        <button
+          class="btn btn-ghost btn-sm btn-icon-inline"
+          :disabled="page >= totalPages"
+          @click="goPage(page + 1)"
+        >
+          Trang sau
+          <AppIcon name="chevron-right" :size="16" />
         </button>
       </div>
     </template>
@@ -89,6 +95,7 @@ import {
 import { fetchMovieList, fetchGenreList, fetchGenres, fetchCountries } from '@/utils/movieMapper'
 import { getMovieApiErrorMessage, MOVIE_CATEGORY_ERROR } from '@/utils/apiErrors'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()

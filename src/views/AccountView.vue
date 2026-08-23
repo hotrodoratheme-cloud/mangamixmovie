@@ -3,7 +3,10 @@
     <div v-if="authLoading" class="loading-text">Đang tải...</div>
 
     <div v-else-if="!user" class="guest-box">
-      <h1 class="page-title">👤 Tài khoản</h1>
+      <h1 class="page-title section-title-icon">
+        <AppIcon name="user" :size="22" />
+        Tài khoản
+      </h1>
       <p>Bạn cần đăng nhập để xem thông tin tài khoản và lịch sử đồng bộ.</p>
       <button type="button" class="btn btn-primary" @click="openLogin">Đăng nhập / Đăng ký</button>
     </div>
@@ -11,7 +14,10 @@
     <template v-else>
       <div class="account-header">
         <div>
-          <h1 class="page-title">👤 Tài khoản</h1>
+          <h1 class="page-title section-title-icon">
+        <AppIcon name="user" :size="22" />
+        Tài khoản
+      </h1>
           <p class="page-subtitle">Quản lý hồ sơ, yêu thích và lịch sử xem</p>
         </div>
         <button type="button" class="btn btn-ghost btn-sm" :disabled="signingOut" @click="handleSignOut">
@@ -68,7 +74,10 @@
 
         <template v-else>
           <div v-if="favoriteMovies.length" class="media-block">
-            <h3>🎬 Phim ({{ favoriteMovies.length }})</h3>
+            <h3 class="section-title-icon">
+              <AppIcon name="film" :size="16" />
+              Phim ({{ favoriteMovies.length }})
+            </h3>
             <div class="history-grid">
               <HistoryMediaCard
                 v-for="item in favoriteMovies"
@@ -79,7 +88,7 @@
                 :poster="item.poster"
                 subtitle="Phim yêu thích"
                 action-label="Xem phim →"
-                action-icon="♥"
+                action-icon="heart"
                 action-title="Bỏ yêu thích"
                 action-variant="favorite"
                 :action-disabled="removingKey === `movie:${getItemId(item)}`"
@@ -89,7 +98,10 @@
           </div>
 
           <div v-if="favoriteManga.length" class="media-block">
-            <h3>📖 Truyện Mangadex ({{ favoriteManga.length }})</h3>
+            <h3 class="section-title-icon">
+              <AppIcon name="books" :size="16" />
+              Truyện Mangadex ({{ favoriteManga.length }})
+            </h3>
             <div class="history-grid">
               <HistoryMediaCard
                 v-for="item in favoriteManga"
@@ -100,7 +112,7 @@
                 :poster="item.poster"
                 subtitle="Truyện yêu thích"
                 action-label="Tiếp tục đọc →"
-                action-icon="♥"
+                action-icon="heart"
                 action-title="Bỏ yêu thích"
                 action-variant="favorite"
                 :action-disabled="removingKey === `manga:${getItemId(item)}`"
@@ -110,7 +122,10 @@
           </div>
 
           <div v-if="favoriteMangaVn.length" class="media-block">
-            <h3>📖 Truyện VN ({{ favoriteMangaVn.length }})</h3>
+            <h3 class="section-title-icon">
+              <AppIcon name="book" :size="16" />
+              Truyện VN ({{ favoriteMangaVn.length }})
+            </h3>
             <div class="history-grid">
               <HistoryMediaCard
                 v-for="item in favoriteMangaVn"
@@ -121,7 +136,7 @@
                 :poster="item.poster"
                 subtitle="Truyện yêu thích"
                 action-label="Tiếp tục đọc →"
-                action-icon="♥"
+                action-icon="heart"
                 action-title="Bỏ yêu thích"
                 action-variant="favorite"
                 :action-disabled="removingKey === `manga_vn:${getItemId(item)}`"
@@ -134,7 +149,7 @@
             v-if="!favoriteMovies.length && !favoriteManga.length && !favoriteMangaVn.length"
             class="empty-history"
           >
-            Chưa có mục yêu thích. Nhấn ♡ trên poster hoặc trang chi tiết để lưu!
+            Chưa có mục yêu thích. Nhấn biểu tượng yêu thích trên poster hoặc trang chi tiết để lưu!
           </div>
         </template>
       </section>
@@ -149,7 +164,10 @@
 
         <template v-else>
           <div v-if="movies.length" class="media-block">
-            <h3>🎬 Phim ({{ movies.length }})</h3>
+            <h3 class="section-title-icon">
+              <AppIcon name="film" :size="16" />
+              Phim ({{ movies.length }})
+            </h3>
             <div class="history-grid">
               <HistoryMediaCard
                 v-for="item in movies.slice(0, 5)"
@@ -165,7 +183,10 @@
           </div>
 
           <div v-if="manga.length" class="media-block">
-            <h3>📖 Truyện Mangadex ({{ manga.length }})</h3>
+            <h3 class="section-title-icon">
+              <AppIcon name="books" :size="16" />
+              Truyện Mangadex ({{ manga.length }})
+            </h3>
             <div class="history-grid">
               <HistoryMediaCard
                 v-for="item in manga.slice(0, 5)"
@@ -181,7 +202,10 @@
           </div>
 
           <div v-if="mangaVn.length" class="media-block">
-            <h3>📖 Truyện VN ({{ mangaVn.length }})</h3>
+            <h3 class="section-title-icon">
+              <AppIcon name="book" :size="16" />
+              Truyện VN ({{ mangaVn.length }})
+            </h3>
             <div class="history-grid">
               <HistoryMediaCard
                 v-for="item in mangaVn.slice(0, 5)"
@@ -224,6 +248,7 @@ import { useFavorites } from '@/composables/useFavorites'
 import { mergeFavoriteLists } from '@/services/favorites'
 import HistoryMediaCard from '@/components/browse/HistoryMediaCard.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()

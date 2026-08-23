@@ -10,7 +10,9 @@
     >
       <div class="history-poster">
         <HistoryThumb :type="type" :poster="poster" :alt="title" />
-        <span class="history-play">▶</span>
+        <span class="history-play">
+          <AppIcon name="play" :size="18" filled />
+        </span>
       </div>
       <div class="history-meta">
         <strong>{{ title }}</strong>
@@ -31,7 +33,7 @@
       :disabled="actionDisabled"
       @click.stop="$emit('action')"
     >
-      {{ actionIcon }}
+      <AppIcon v-if="actionIcon" :name="actionIcon" :size="actionIconSize" />
     </button>
   </div>
 </template>
@@ -39,6 +41,7 @@
 <script setup>
 import { computed } from 'vue'
 import HistoryThumb from '@/components/browse/HistoryThumb.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const props = defineProps({
   type: {
@@ -64,6 +67,7 @@ const props = defineProps({
 defineEmits(['action'])
 
 const hasAction = computed(() => Boolean(props.actionIcon))
+const actionIconSize = computed(() => (props.actionVariant === 'favorite' ? 16 : 14))
 </script>
 
 <style scoped>
@@ -123,7 +127,6 @@ const hasAction = computed(() => Boolean(props.actionIcon))
   justify-content: center;
   background: rgba(0, 0, 0, 0.45);
   color: var(--accent);
-  font-size: 1.125rem;
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -183,7 +186,6 @@ const hasAction = computed(() => Boolean(props.actionIcon))
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   color: var(--text-muted);
-  font-size: 0.75rem;
 }
 
 .history-card-btn--delete:hover:not(:disabled) {
@@ -202,8 +204,6 @@ const hasAction = computed(() => Boolean(props.actionIcon))
   border: 1px solid var(--border);
   background: rgba(255, 45, 85, 0.1);
   color: #ff2d55;
-  font-size: 1rem;
-  line-height: 1;
 }
 
 .history-card-btn--favorite:hover:not(:disabled) {

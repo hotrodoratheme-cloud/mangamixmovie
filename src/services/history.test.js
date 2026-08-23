@@ -41,6 +41,25 @@ describe('history resume helpers', () => {
     expect(getMovieEpisodeResumeSeconds('phim-a', { slug: 'tap-1', name: 'Tập 1' })).toBe(0)
   })
 
+  it('không resume nếu xem dưới 15 giây', () => {
+    localStorage.setItem(
+      'mmx_history_v1',
+      JSON.stringify({
+        movies: [
+          {
+            itemId: 'phim-b',
+            itemName: 'Phim B',
+            episodeSlug: 'tap-2',
+            progressSeconds: 10,
+          },
+        ],
+        manga: [],
+        manga_vn: [],
+      }),
+    )
+    expect(getMovieEpisodeResumeSeconds('phim-b', { slug: 'tap-2', name: 'Tập 2' })).toBe(0)
+  })
+
   it('buildMovieDetailLink giữ query tập', () => {
     expect(
       buildMovieDetailLink({ itemId: 'phim-a', episodeSlug: 'tap-3' }),

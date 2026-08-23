@@ -12,11 +12,12 @@
           <p class="meta">{{ movie.year }} · {{ movie.time }}</p>
           <div class="hero-actions">
             <button
-              class="btn btn-primary play-btn"
+              class="btn btn-primary play-btn btn-play-inline"
               :disabled="!episodes.length"
               @click="playFirst"
             >
-              ▶ {{ isPlaying ? 'Đang phát' : 'Phát ngay' }}
+              <AppIcon name="play" :size="16" filled />
+              {{ isPlaying ? 'Đang phát' : 'Phát ngay' }}
             </button>
             <FavoriteButton
               type="movie"
@@ -107,6 +108,7 @@ import { saveHistory, getMovieEpisodeResumeSeconds } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
 import { usePageMeta } from '@/composables/usePageMeta'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 import FavoriteButton from '@/components/favorites/FavoriteButton.vue'
 
 import { useNavBack } from '@/composables/useNavBack'

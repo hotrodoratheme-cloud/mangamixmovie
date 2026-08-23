@@ -7,8 +7,14 @@
       <h1>{{ item.title }}</h1>
       <p v-if="item.subtitle" class="hero-sub">{{ item.subtitle }}</p>
       <div class="hero-actions">
-        <router-link :to="item.to" class="btn btn-play">▶ {{ actionLabel }}</router-link>
-        <router-link v-if="infoLink" :to="infoLink" class="btn btn-info">ℹ Chi tiết</router-link>
+        <router-link :to="item.to" class="btn btn-play btn-play-inline">
+          <AppIcon name="play" :size="16" filled />
+          {{ actionLabel }}
+        </router-link>
+        <router-link v-if="infoLink" :to="infoLink" class="btn btn-info btn-icon-inline">
+          <AppIcon name="info" :size="16" />
+          Chi tiết
+        </router-link>
       </div>
     </div>
   </section>
@@ -16,6 +22,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const props = defineProps({
   item: { type: Object, default: null },

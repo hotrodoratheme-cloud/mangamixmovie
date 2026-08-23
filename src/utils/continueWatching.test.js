@@ -24,7 +24,15 @@ describe('continueWatching', () => {
               chapterName: 'Ch. 1',
             },
           ],
-          manga_vn: [],
+          manga_vn: [
+            {
+              itemId: 'vn-1',
+              itemName: 'Truyện VN',
+              poster: 'https://img.test/vn.jpg',
+              chapterId: 'ch-vn-2',
+              chapterName: 'Ch. 2',
+            },
+          ],
         }),
       },
       getItem(key) {
@@ -47,6 +55,15 @@ describe('continueWatching', () => {
     expect(item.to).toEqual({
       path: '/truyen/manga-1/doc',
       query: { chapter: 'ch-1' },
+    })
+  })
+
+  it('map truyện VN sang reader route', () => {
+    const [item] = getContinueItems('manga_vn', 5)
+    expect(item.title).toBe('Truyện VN')
+    expect(item.to).toEqual({
+      path: '/truyen-vn/vn-1/doc',
+      query: { chapter: 'ch-vn-2' },
     })
   })
 })

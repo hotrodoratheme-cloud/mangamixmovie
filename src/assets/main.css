@@ -17,6 +17,7 @@
   --danger: #ef4444;
   --shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
   --radius: 10px;
+  --header-bar-h: 70px;
   --header-h: 70px;
   --layout-mobile: 1024px;
 }
@@ -254,4 +255,29 @@ img {
 .media-block h3 {
   margin: 0 0 12px;
   font-size: 0.875rem;
+}
+
+.app-icon {
+  display: block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.clear-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-play-inline,
+.btn-icon-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }

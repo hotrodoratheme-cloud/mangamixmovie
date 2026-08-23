@@ -17,10 +17,11 @@
         <template #actions>
           <button
             v-if="firstChapter"
-            class="btn btn-primary"
+            class="btn btn-primary btn-play-inline"
             @click="readChapter(firstChapter)"
           >
-            ▶ Đọc từ đầu
+            <AppIcon name="play" :size="16" filled />
+            Đọc từ đầu
           </button>
           <button
             v-if="continueChapter"
@@ -93,6 +94,7 @@ import { mapOtruyenChapters } from '@/utils/otruyenChapters'
 import { useNavBack } from '@/composables/useNavBack'
 import { localHistory } from '@/services/history'
 import FavoriteButton from '@/components/favorites/FavoriteButton.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()

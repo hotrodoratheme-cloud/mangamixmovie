@@ -1,7 +1,9 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
-      <button class="close-btn" type="button" @click="$emit('close')">✕</button>
+      <button class="close-btn" type="button" aria-label="Đóng" @click="$emit('close')">
+        <AppIcon name="close" :size="18" />
+      </button>
 
       <h2 class="modal-title">{{ title }}</h2>
       <p v-if="mode === 'login'" class="modal-desc">Đăng nhập bằng email hoặc tên tài khoản</p>
@@ -115,7 +117,8 @@
 
       <div v-if="isConfigured" class="modal-footer">
         <button v-if="mode === 'forgot'" type="button" class="switch-mode" @click="switchMode('login')">
-          ← Quay lại đăng nhập
+          <AppIcon name="arrow-left" :size="16" />
+          Quay lại đăng nhập
         </button>
         <button v-else type="button" class="switch-mode" @click="toggleAuthMode">
           {{ mode === 'login' ? 'Chưa có tài khoản? Đăng ký' : 'Đã có tài khoản? Đăng nhập' }}
@@ -128,6 +131,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import AppIcon from '@/components/icons/AppIcon.vue'
 import { validateUsername } from '@/services/profile'
 
 const emit = defineEmits(['close', 'success'])
@@ -242,10 +246,14 @@ watch(
   position: absolute;
   top: 16px;
   right: 16px;
+  width: 32px;
+  height: 32px;
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-title {

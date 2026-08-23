@@ -6,7 +6,7 @@
       :class="`${containerId}-prev`"
       aria-label="Trước"
     >
-      ‹
+      <AppIcon name="chevron-left" :size="18" />
     </button>
 
     <Swiper
@@ -31,7 +31,7 @@
       :class="`${containerId}-next`"
       aria-label="Sau"
     >
-      ›
+      <AppIcon name="chevron-right" :size="18" />
     </button>
   </div>
 </template>
@@ -41,6 +41,7 @@ import { computed } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Navigation, FreeMode } from 'swiper/modules'
 import PosterCard from './PosterCard.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 import 'swiper/css'
 import 'swiper/css/navigation'
 

@@ -1,6 +1,6 @@
 <template>
   <div class="search-bar">
-    <span class="search-icon">🔍</span>
+    <AppIcon name="search" :size="18" class="search-icon" />
     <input
       :value="modelValue"
       type="text"
@@ -8,11 +8,21 @@
       @input="$emit('update:modelValue', $event.target.value)"
       @keyup.enter="$emit('search')"
     />
-    <button v-if="modelValue" class="clear-btn" @click="$emit('update:modelValue', '')">✕</button>
+    <button
+      v-if="modelValue"
+      type="button"
+      class="clear-btn"
+      aria-label="Xóa"
+      @click="$emit('update:modelValue', '')"
+    >
+      <AppIcon name="close" :size="16" />
+    </button>
   </div>
 </template>
 
 <script setup>
+import AppIcon from '@/components/icons/AppIcon.vue'
+
 defineProps({
   modelValue: { type: String, default: '' },
   placeholder: { type: String, default: 'Tìm kiếm...' },
@@ -34,8 +44,8 @@ defineEmits(['update:modelValue', 'search'])
 }
 
 .search-icon {
-  opacity: 0.5;
-  font-size: 1rem;
+  opacity: 0.55;
+  flex-shrink: 0;
 }
 
 input {
@@ -56,7 +66,10 @@ input::placeholder {
   border: none;
   color: var(--text-muted);
   padding: 4px;
-  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .clear-btn:hover {

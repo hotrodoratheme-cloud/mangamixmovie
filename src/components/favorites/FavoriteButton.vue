@@ -11,7 +11,7 @@
     :aria-pressed="active"
     @click.stop.prevent="onClick"
   >
-    <span class="favorite-icon" aria-hidden="true">{{ active ? '♥' : '♡' }}</span>
+    <AppIcon name="heart" :size="18" :filled="active" class="favorite-icon" />
     <span v-if="variant === 'label'" class="favorite-label">
       {{ active ? 'Đã yêu thích' : 'Yêu thích' }}
     </span>
@@ -24,6 +24,7 @@ import { useFavorites } from '@/composables/useFavorites'
 import { useAuthModal } from '@/composables/useAuthModal'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const props = defineProps({
   type: {
@@ -153,12 +154,8 @@ async function onClick() {
 }
 
 .favorite-icon {
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.favorite-btn--icon .favorite-icon {
-  font-size: 1.05rem;
+  width: 18px;
+  height: 18px;
 }
 
 .favorite-label {

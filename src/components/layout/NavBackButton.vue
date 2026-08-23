@@ -8,7 +8,8 @@
       title="Quay lại"
       @click="onBack"
     >
-      ← Quay lại
+      <AppIcon name="arrow-left" :size="16" />
+      Quay lại
     </button>
   </Transition>
 </template>
@@ -17,13 +18,14 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNavBack } from '@/composables/useNavBack'
+import { shouldShowNavBackButton } from '@/utils/readerRoute'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const route = useRoute()
 const { goBack } = useNavBack('/')
 
 const fallback = computed(() => route.meta.backTo || '')
-const isReaderPage = computed(() => route.path.includes('/doc'))
-const showBackButton = computed(() => fallback.value && !isReaderPage.value)
+const showBackButton = computed(() => shouldShowNavBackButton(route.path, fallback.value))
 
 function onBack() {
   if (!showBackButton.value) return

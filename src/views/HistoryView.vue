@@ -2,7 +2,10 @@
   <div class="page history-page">
     <div class="history-header">
       <div>
-        <h1 class="page-title">🕐 Lịch sử xem</h1>
+        <h1 class="page-title section-title-icon">
+          <AppIcon name="history" :size="22" />
+          Lịch sử xem
+        </h1>
         <p class="page-subtitle">
           {{ user ? 'Đồng bộ trên cloud khi đã đăng nhập' : 'Lưu trên thiết bị — đăng nhập để đồng bộ' }}
         </p>
@@ -23,7 +26,10 @@
     <template v-else>
       <section v-if="movies.length" class="history-section">
         <div class="section-head">
-          <h2>🎬 Phim</h2>
+          <h2 class="section-title-icon">
+            <AppIcon name="film" :size="18" />
+            Phim
+          </h2>
           <button
             type="button"
             class="btn btn-ghost btn-sm"
@@ -43,7 +49,7 @@
             :poster="item.poster"
             :subtitle="item.episodeName || item.episode_slug || '—'"
             action-label="Tiếp tục xem →"
-            action-icon="✕"
+            action-icon="close"
             action-title="Xóa khỏi lịch sử"
             action-variant="delete"
             :action-disabled="clearing"
@@ -54,7 +60,10 @@
 
       <section v-if="manga.length" class="history-section">
         <div class="section-head">
-          <h2>📖 Truyện</h2>
+          <h2 class="section-title-icon">
+            <AppIcon name="books" :size="18" />
+            Truyện
+          </h2>
           <button
             type="button"
             class="btn btn-ghost btn-sm"
@@ -74,7 +83,7 @@
             :poster="item.poster"
             :subtitle="item.chapterName || item.chapter_id || '—'"
             action-label="Tiếp tục đọc →"
-            action-icon="✕"
+            action-icon="close"
             action-title="Xóa khỏi lịch sử"
             action-variant="delete"
             :action-disabled="clearing"
@@ -105,7 +114,7 @@
             :poster="item.poster"
             :subtitle="item.chapterName || item.chapter_id || '—'"
             action-label="Tiếp tục đọc →"
-            action-icon="✕"
+            action-icon="close"
             action-title="Xóa khỏi lịch sử"
             action-variant="delete"
             :action-disabled="clearing"
@@ -143,6 +152,7 @@ import { localHistory, fetchCloudHistory, mergeHistoryLists, removeHistory, clea
 import { useAuth } from '@/composables/useAuth'
 import HistoryMediaCard from '@/components/browse/HistoryMediaCard.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const { user, loading: authLoading } = useAuth()
 const movies = ref([])

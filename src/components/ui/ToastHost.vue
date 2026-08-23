@@ -10,7 +10,7 @@
       >
         <span>{{ toast.message }}</span>
         <button type="button" class="toast-close" aria-label="Đóng" @click="dismiss(toast.id)">
-          ✕
+          <AppIcon name="close" :size="16" />
         </button>
       </div>
     </TransitionGroup>
@@ -19,6 +19,7 @@
 
 <script setup>
 import { useToast } from '@/composables/useToast'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const { toasts, dismiss } = useToast()
 </script>
@@ -68,6 +69,9 @@ const { toasts, dismiss } = useToast()
   cursor: pointer;
   padding: 0;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toast-enter-active,

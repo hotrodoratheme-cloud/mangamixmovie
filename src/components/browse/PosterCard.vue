@@ -23,7 +23,9 @@
         </div>
         <span v-if="item.episode" class="poster-ep">{{ item.episode }}</span>
         <div class="poster-overlay">
-          <span class="poster-play">▶</span>
+          <span class="poster-play">
+            <AppIcon name="play" :size="22" filled />
+          </span>
         </div>
       </div>
       <div v-if="showMeta" class="poster-meta">
@@ -69,6 +71,7 @@ import { useRoute } from 'vue-router'
 import MangaCover from '@/components/browse/MangaCover.vue'
 import LazyImage from '@/components/browse/LazyImage.vue'
 import FavoriteButton from '@/components/favorites/FavoriteButton.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const props = defineProps({
   item: { type: Object, required: true },

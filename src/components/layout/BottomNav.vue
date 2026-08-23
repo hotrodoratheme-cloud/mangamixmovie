@@ -7,7 +7,7 @@
       class="bottom-nav-item"
       :class="{ active: isActive(item) }"
     >
-      <span class="bottom-nav-icon" aria-hidden="true">{{ item.icon }}</span>
+      <AppIcon :name="item.icon" :size="20" class="bottom-nav-icon" />
       <span class="bottom-nav-label">{{ item.label }}</span>
     </router-link>
   </nav>
@@ -16,15 +16,16 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const route = useRoute()
 
 const items = [
-  { to: '/phim', label: 'Phim', icon: '🎬', prefix: '/phim' },
-  { to: '/truyen-vn', label: 'Truyện VN', icon: '📖', prefix: '/truyen-vn' },
-  { to: '/truyen', label: 'Truyện', icon: '📚', prefix: '/truyen' },
-  { to: '/lich-su', label: 'Lịch sử', icon: '🕐', prefix: '/lich-su' },
-  { to: '/tai-khoan', label: 'Tài khoản', icon: '👤', prefix: '/tai-khoan' },
+  { to: '/phim', label: 'Phim', icon: 'film', prefix: '/phim' },
+  { to: '/truyen-vn', label: 'Truyện VN', icon: 'book', prefix: '/truyen-vn' },
+  { to: '/truyen', label: 'Truyện', icon: 'books', prefix: '/truyen' },
+  { to: '/lich-su', label: 'Lịch sử', icon: 'history', prefix: '/lich-su' },
+  { to: '/tai-khoan', label: 'Tài khoản', icon: 'user', prefix: '/tai-khoan' },
 ]
 
 const visible = computed(() => {
@@ -72,7 +73,7 @@ function isActive(item) {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 4px;
     min-height: 52px;
     border-radius: 10px;
     color: var(--text-muted);
@@ -87,8 +88,8 @@ function isActive(item) {
   }
 
   .bottom-nav-icon {
-    font-size: 1rem;
-    line-height: 1;
+    width: 20px;
+    height: 20px;
   }
 }
 </style>

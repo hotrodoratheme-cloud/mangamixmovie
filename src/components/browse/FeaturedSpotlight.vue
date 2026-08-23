@@ -5,7 +5,7 @@
 
     <div class="container spotlight-inner">
       <div class="spotlight-content">
-        <span class="spotlight-label">⭐ Nổi bật hôm nay</span>
+        <span class="spotlight-label">Nổi bật hôm nay</span>
         <h1>{{ item.title }}</h1>
         <p v-if="item.subtitle" class="spotlight-origin">{{ item.subtitle }}</p>
 
@@ -17,8 +17,9 @@
 
         <p v-if="item.description" class="spotlight-desc">{{ item.description }}</p>
 
-        <router-link :to="item.to" class="btn btn-primary spotlight-btn">
-          ▶ {{ actionLabel }}
+        <router-link :to="item.to" class="btn btn-primary spotlight-btn btn-play-inline">
+          <AppIcon name="play" :size="16" filled />
+          {{ actionLabel }}
         </router-link>
       </div>
 
@@ -29,8 +30,10 @@
           :to="side.to"
           class="side-card"
         >
-          <MangaCover v-if="isMangaItem(side)" :url="side.cover" :alt="side.title" />
-          <LazyImage v-else :src="side.cover" :alt="side.title" />
+          <div class="side-card-thumb">
+            <MangaCover v-if="isMangaItem(side)" :url="side.cover" :alt="side.title" />
+            <LazyImage v-else :src="side.cover" :alt="side.title" />
+          </div>
           <div class="side-info">
             <strong>{{ side.title }}</strong>
             <span>{{ side.episode || side.subtitle }}</span>
@@ -45,6 +48,7 @@
 import { computed } from 'vue'
 import MangaCover from '@/components/browse/MangaCover.vue'
 import LazyImage from '@/components/browse/LazyImage.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 import { resolveMangaImageSrc } from '@/utils/mangaImage'
 
 const props = defineProps({
@@ -117,6 +121,11 @@ function isMangaItem(entry) {
   padding-bottom: 32px;
   min-height: clamp(360px, 52vh, 520px);
   align-items: end;
+  min-width: 0;
+}
+
+.spotlight-content {
+  min-width: 0;
 }
 
 @media (min-width: 1024px) {
@@ -192,12 +201,17 @@ function isMangaItem(entry) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
+  min-width: 0;
 }
 
 .side-card {
   display: flex;
   gap: 12px;
   align-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -214,30 +228,47 @@ function isMangaItem(entry) {
   background: var(--accent-soft);
 }
 
-.side-card img,
-.side-card :deep(img) {
+.side-card-thumb {
   width: 56px;
   height: 76px;
-  object-fit: cover;
+  flex: 0 0 56px;
   border-radius: 6px;
-  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-hover);
+}
+
+.side-card-thumb :deep(.manga-cover-wrap),
+.side-card-thumb :deep(img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .side-info {
+  flex: 1;
   min-width: 0;
 }
 
 .side-info strong {
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   font-size: 0.8125rem;
   font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
 }
 
 .side-info span {
+  display: block;
+  margin-top: 4px;
   font-size: 0.75rem;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

@@ -62,7 +62,8 @@
         title="Về trang truyện"
         @click="goBackToDetail"
       >
-        ← Truyện
+        <AppIcon name="arrow-left" :size="16" />
+        Truyện
       </button>
 
       <template v-if="!pageLoading && chapters.length">
@@ -71,7 +72,8 @@
           :disabled="currentIndex <= 0 || chapterLoading"
           @click="prevChapter"
         >
-          ‹ Trước
+          <AppIcon name="chevron-left" :size="16" />
+          Trước
         </button>
 
         <div class="chapter-picker">
@@ -91,7 +93,8 @@
           :disabled="currentIndex >= chapters.length - 1 || chapterLoading"
           @click="nextChapter"
         >
-          Sau ›
+          Sau
+          <AppIcon name="chevron-right" :size="16" />
         </button>
       </template>
     </nav>
@@ -106,6 +109,7 @@ import ChapterImageStack from '@/components/reader/ChapterImageStack.vue'
 import MangaStoryHero from '@/components/manga/MangaStoryHero.vue'
 import MangaStoryInfoPanel from '@/components/manga/MangaStoryInfoPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 import { fetchOtruyenDetail, mapOtruyenDetailMeta } from '@/utils/otruyenMapper'
 import {
   buildOtruyenChapterCatalog,
@@ -394,6 +398,7 @@ onMounted(init)
 }
 
 .reader-bottom {
+  --reader-control-h: 40px;
   position: fixed;
   bottom: 0;
   left: 0;
@@ -410,13 +415,21 @@ onMounted(init)
 
 .nav-btn {
   flex-shrink: 0;
-  padding: 10px 14px;
+  box-sizing: border-box;
+  height: var(--reader-control-h);
+  min-height: var(--reader-control-h);
+  padding: 0 14px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--text);
   font-size: 0.8125rem;
   font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   transition: all 0.15s;
 }
 
@@ -452,29 +465,37 @@ onMounted(init)
 .chapter-picker select {
   width: 100%;
   max-width: 280px;
-  padding: 8px 12px;
+  box-sizing: border-box;
+  height: var(--reader-control-h);
+  min-height: var(--reader-control-h);
+  padding: 0 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1;
   text-align: center;
 }
 
 @media (max-width: 480px) {
+  .reader-bottom {
+    --reader-control-h: 36px;
+  }
+
   .server-bar {
     flex-direction: column;
     align-items: stretch;
   }
 
   .nav-btn {
-    padding: 10px 8px;
+    padding: 0 8px;
     font-size: 0.75rem;
   }
 
   .nav-btn-back {
-    padding: 10px 10px;
+    padding: 0 10px;
   }
 }
 </style>
