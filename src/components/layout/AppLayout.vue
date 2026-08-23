@@ -77,7 +77,6 @@
       </div>
 
       <form
-        v-show="searchOpen"
         class="mobile-search-bar container"
         @submit.prevent="onSearch"
       >
@@ -91,14 +90,6 @@
           />
           <button type="submit" class="mobile-search-submit" aria-label="Tìm kiếm">
             <AppIcon name="search" :size="18" />
-          </button>
-          <button
-            type="button"
-            class="mobile-search-close"
-            aria-label="Đóng tìm kiếm"
-            @click="closeSearch"
-          >
-            <AppIcon name="close" :size="18" />
           </button>
         </div>
       </form>
@@ -134,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import { useAuth } from '@/composables/useAuth'
@@ -159,6 +150,21 @@ const searchOpen = ref(false)
 const searchQuery = ref('')
 const mobileSearchInput = ref(null)
 const cachedHomeViews = ['MovieSearchView', 'MangaSearchView', 'TruyenVnSearchView']
+const MOBILE_LAYOUT_MQ = '(max-width: 1024px)'
+
+function resetMobileChrome() {
+  searchOpen.value = false
+  menuOpen.value = false
+}
+
+function syncMobileChromeForViewport() {
+  if (typeof window === 'undefined') return
+  if (!window.matchMedia(MOBILE_LAYOUT_MQ).matches) {
+    resetMobileChrome()
+  }
+}
+
+let mobileLayoutMq
 
 const isTruyenVn = computed(() => route.path.startsWith('/truyen-vn'))
 const isManga = computed(() => route.path.startsWith('/truyen') && !isTruyenVn.value)
@@ -209,10 +215,6 @@ async function toggleSearch() {
   }
 }
 
-function closeSearch() {
-  searchOpen.value = false
-}
-
 function onBrandClick(event) {
   menuOpen.value = false
   searchOpen.value = false
@@ -227,6 +229,14 @@ onMounted(() => {
   void import('@/views/MovieSearchView.vue')
   void import('@/views/MangaSearchView.vue')
   void import('@/views/TruyenVnSearchView.vue')
+
+  mobileLayoutMq = window.matchMedia(MOBILE_LAYOUT_MQ)
+  syncMobileChromeForViewport()
+  mobileLayoutMq.addEventListener('change', syncMobileChromeForViewport)
+})
+
+onUnmounted(() => {
+  mobileLayoutMq?.removeEventListener('change', syncMobileChromeForViewport)
 })
 
 watch(
@@ -478,7 +488,7 @@ function onSearch() {
 }
 
 .mobile-search-bar {
-  display: block;
+  display: none;
   width: 100%;
   padding: 0 clamp(12px, 3vw, 24px) 12px;
   box-sizing: border-box;
@@ -523,20 +533,6 @@ function onSearch() {
   justify-content: center;
   flex-shrink: 0;
 }
-
-.mobile-search-close {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
 .user-pill {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -564,7 +560,7 @@ function onSearch() {
 }
 
 .mobile-nav {
-  display: flex;
+  display: none;
   flex-direction: column;
   padding-bottom: 12px;
   gap: 4px;
@@ -607,6 +603,14 @@ function onSearch() {
   }
 
   .search-toggle-btn {
+    display: flex;
+  }
+
+  .app-shell.search-open .mobile-search-bar {
+    display: block;
+  }
+
+  .mobile-nav {
     display: flex;
   }
 
