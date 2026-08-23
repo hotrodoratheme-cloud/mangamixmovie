@@ -16,9 +16,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import PosterCard from '@/components/browse/PosterCard.vue'
-import { getContinueItems } from '@/utils/continueWatching'
+import { useContinueHistory } from '@/composables/useContinueHistory'
 
 const props = defineProps({
   scope: {
@@ -40,16 +40,12 @@ const props = defineProps({
   },
 })
 
-const items = ref([])
+const { items } = useContinueHistory(props.scope, props.limit)
 
 const resolvedTitle = computed(() => {
   if (props.title) return props.title
   if (props.scope === 'movie') return 'Tiếp tục xem phim'
   return 'Tiếp tục đọc'
-})
-
-onMounted(() => {
-  items.value = getContinueItems(props.scope, props.limit)
 })
 </script>
 

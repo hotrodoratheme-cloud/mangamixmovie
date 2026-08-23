@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
-import { getContinueItems } from './continueWatching.js'
+import { getContinueItems, loadContinueItems } from './continueWatching.js'
 
 describe('continueWatching', () => {
   beforeEach(() => {
@@ -65,5 +65,29 @@ describe('continueWatching', () => {
       path: '/truyen-vn/vn-1/doc',
       query: { chapter: 'ch-vn-2' },
     })
+  })
+
+  it('trả về rỗng khi không có lịch sử local', () => {
+    localStorage.setItem(
+      'mmx_history_v1',
+      JSON.stringify({ movies: [], manga: [], manga_vn: [] })
+    )
+    expect(getContinueItems('movie')).toEqual([])
+    expect(getContinueItems('manga')).toEqual([])
+    expect(getContinueItems('manga_vn')).toEqual([])
+  })
+
+  it('loadContinueItems guest chỉ đọc local', async () => {
+    const items = await loadContinueItems('movie', 5, null)
+    expect(items).toHaveLength(1)
+    expect(items[0].title).toBe('Phim A')
+  })
+
+  it('loadContinueItems trả rỗng sau khi xóa local', async () => {
+    localStorage.setItem(
+      'mmx_history_v1',
+      JSON.stringify({ movies: [], manga: [], manga_vn: [] })
+    )
+    expect(await loadContinueItems('movie', 5, null)).toEqual([])
   })
 })

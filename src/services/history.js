@@ -1,4 +1,37 @@
 const STORAGE_KEY = 'mmx_history_v1'
+const HISTORY_SYNC_CHANNEL = 'mmx_history_sync_v1'
+
+let historySyncChannel = null
+
+try {
+  if (typeof BroadcastChannel !== 'undefined') {
+    historySyncChannel = new BroadcastChannel(HISTORY_SYNC_CHANNEL)
+  }
+} catch {
+  historySyncChannel = null
+}
+
+export function notifyHistoryChanged() {
+  historySyncChannel?.postMessage({ type: 'sync', ts: Date.now() })
+}
+
+export function onHistoryChanged(callback) {
+  if (typeof window === 'undefined') return () => {}
+
+  const onStorage = (event) => {
+    if (event.key === STORAGE_KEY) callback()
+  }
+
+  const onMessage = () => callback()
+
+  window.addEventListener('storage', onStorage)
+  historySyncChannel?.addEventListener('message', onMessage)
+
+  return () => {
+    window.removeEventListener('storage', onStorage)
+    historySyncChannel?.removeEventListener('message', onMessage)
+  }
+}
 
 function normalizeItemId(id) {
   if (id == null) return ''
@@ -69,6 +102,7 @@ function readStore() {
 
 function writeStore(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  notifyHistoryChanged()
 }
 
 function upsertItem(list, item, key = 'itemId') {

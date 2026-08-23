@@ -1,4 +1,10 @@
-import { localHistory, getHistoryEntryId, buildMovieDetailLink } from '@/services/history'
+import {
+  localHistory,
+  fetchCloudHistory,
+  mergeHistoryLists,
+  getHistoryEntryId,
+  buildMovieDetailLink,
+} from '@/services/history'
 
 function toContinueItem(entry, type) {
   const itemId = getHistoryEntryId(entry)
@@ -44,25 +50,47 @@ function toContinueItem(entry, type) {
   }
 }
 
+function mapContinueRows(rows, type, limit) {
+  return (rows || [])
+    .slice(0, limit)
+    .map((entry) => toContinueItem(entry, type))
+    .filter(Boolean)
+}
+
+async function getHistoryRows(scope, userId) {
+  const local = localHistory.getAll()
+
+  if (userId) {
+    try {
+      const cloud = await fetchCloudHistory(userId)
+      if (scope === 'movie') {
+        return mergeHistoryLists(cloud.movies, local.movies)
+      }
+      if (scope === 'manga_vn') {
+        return mergeHistoryLists(cloud.manga_vn || [], local.manga_vn || [])
+      }
+      return mergeHistoryLists(cloud.manga, local.manga)
+    } catch {
+      /* fallback local bên dưới */
+    }
+  }
+
+  if (scope === 'movie') return local.movies || []
+  if (scope === 'manga_vn') return local.manga_vn || []
+  return local.manga || []
+}
+
+/** Chỉ đọc localStorage — dùng cho logic resume nhanh */
 export function getContinueItems(scope, limit = 8) {
   const store = localHistory.getAll()
+  if (scope === 'movie') return mapContinueRows(store.movies, 'movie', limit)
+  if (scope === 'manga_vn') return mapContinueRows(store.manga_vn, 'manga_vn', limit)
+  return mapContinueRows(store.manga, 'manga', limit)
+}
 
-  if (scope === 'movie') {
-    return (store.movies || [])
-      .slice(0, limit)
-      .map((entry) => toContinueItem(entry, 'movie'))
-      .filter(Boolean)
-  }
-
-  if (scope === 'manga_vn') {
-    return (store.manga_vn || [])
-      .slice(0, limit)
-      .map((entry) => toContinueItem(entry, 'manga_vn'))
-      .filter(Boolean)
-  }
-
-  return (store.manga || [])
-    .slice(0, limit)
-    .map((entry) => toContinueItem(entry, 'manga'))
-    .filter(Boolean)
+/** Đọc local + cloud (nếu đã đăng nhập) cho module Tiếp tục xem */
+export async function loadContinueItems(scope, limit = 8, userId = null) {
+  const rows = await getHistoryRows(scope, userId)
+  const type = scope === 'movie' ? 'movie' : scope === 'manga_vn' ? 'manga_vn' : 'manga'
+  return mapContinueRows(rows, type, limit)
 }
