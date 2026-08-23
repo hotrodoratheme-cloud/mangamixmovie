@@ -87,6 +87,7 @@ import {
   MOVIE_FEATURED_COUNTRIES,
 } from '@/config/apis'
 import { fetchMovieList, fetchGenreList, fetchGenres, fetchCountries } from '@/utils/movieMapper'
+import { getMovieApiErrorMessage, MOVIE_CATEGORY_ERROR } from '@/utils/apiErrors'
 
 const route = useRoute()
 const router = useRouter()
@@ -170,8 +171,8 @@ async function load() {
     items.value = result.items
     totalPages.value = result.pagination?.totalPages || 1
     totalItems.value = result.pagination?.totalItems || result.items.length
-  } catch {
-    error.value = 'Không thể tải danh mục.'
+  } catch (err) {
+    error.value = getMovieApiErrorMessage(err, MOVIE_CATEGORY_ERROR)
     items.value = []
   } finally {
     loading.value = false

@@ -99,6 +99,7 @@ import Hls from 'hls.js'
 import { movieApi } from '@/config/apis'
 import { buildImageMovieUrl } from '@/utils/mediaHelper'
 import { getHlsCandidates, getEmbedUrl } from '@/utils/streamHelper'
+import { getMovieApiErrorMessage, MOVIE_LOAD_ERROR } from '@/utils/apiErrors'
 import { saveHistory } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
 import FavoriteButton from '@/components/favorites/FavoriteButton.vue'
@@ -195,7 +196,7 @@ async function fetchMovie() {
   error.value = ''
 
   try {
-    const { data } = await axios.get(movieApi.detail(route.params.slug))
+    const { data } = await axios.get(movieApi.detail(route.params.slug), { timeout: 15000 })
     if (seq !== fetchSeq) return
     if (!data.movie) {
       error.value = 'Không tìm thấy phim.'
@@ -217,9 +218,9 @@ async function fetchMovie() {
     selectedServerIndex.value = 0
     episodes.value = servers.value[0]?.server_data || []
     applyFromQuery()
-  } catch {
+  } catch (err) {
     if (seq !== fetchSeq) return
-    error.value = 'Không thể tải thông tin phim.'
+    error.value = getMovieApiErrorMessage(err, MOVIE_LOAD_ERROR)
   } finally {
     if (seq === fetchSeq) loading.value = false
   }

@@ -44,6 +44,7 @@
       <FeaturedSpotlight :item="featured" :side-items="sideItems" />
 
       <div v-if="homeLoading" class="loading-text">Đang tải danh mục...</div>
+      <div v-else-if="homeError" class="error-text">{{ homeError }}</div>
 
       <div v-else class="container home-sections">
         <UpdateGrid
@@ -83,6 +84,11 @@ import {
   searchMovies,
 } from '@/utils/movieMapper'
 import { movieApi } from '@/config/apis'
+import {
+  getMovieApiErrorMessage,
+  MOVIE_SEARCH_ERROR,
+  MOVIE_SOURCE_MAINTENANCE,
+} from '@/utils/apiErrors'
 import { useRouteSearch } from '@/composables/useRouteSearch'
 import { useFavorites } from '@/composables/useFavorites'
 import { useAuth } from '@/composables/useAuth'
@@ -97,6 +103,7 @@ const sideItems = ref([])
 const updateItems = ref([])
 const loading = ref(false)
 const homeLoading = ref(true)
+const homeError = ref('')
 const error = ref('')
 const searchPage = ref(1)
 const totalPages = ref(1)
@@ -122,9 +129,9 @@ async function runSearch() {
     totalPages.value = data.pagination.totalPages
     totalItems.value = data.pagination.totalItems
     searchPage.value = data.pagination.currentPage
-  } catch {
+  } catch (err) {
     results.value = []
-    error.value = 'Không thể tìm kiếm phim. Vui lòng thử lại.'
+    error.value = getMovieApiErrorMessage(err, MOVIE_SEARCH_ERROR)
   } finally {
     loading.value = false
   }
@@ -143,19 +150,33 @@ const swiperRows = computed(() =>
 
 async function loadHome() {
   homeLoading.value = true
+  homeError.value = ''
   try {
-    const [...listResults] = await Promise.all([
-      ...MOVIE_LIST_TYPES.map((t) =>
-        fetchMovieList(axios, t.key).catch(() => ({ items: [], title: t.label }))
-      ),
-    ])
+    const listResults = await Promise.allSettled(
+      MOVIE_LIST_TYPES.map((t) => fetchMovieList(axios, t.key))
+    )
+
+    const failures = listResults.filter((result) => result.status === 'rejected')
+    if (failures.length === listResults.length) {
+      homeError.value = getMovieApiErrorMessage(
+        failures[0].reason,
+        MOVIE_SOURCE_MAINTENANCE,
+      )
+      rows.value = []
+      updateItems.value = []
+      featured.value = null
+      sideItems.value = []
+      return
+    }
+
     rows.value = MOVIE_LIST_TYPES.map((t, i) => ({
       key: t.key,
       title: t.label,
-      items: listResults[i]?.items || [],
+      items: listResults[i].status === 'fulfilled' ? listResults[i].value.items || [] : [],
     }))
 
-    const latest = listResults[0]?.items || []
+    const latest =
+      listResults[0].status === 'fulfilled' ? listResults[0].value.items || [] : []
     updateItems.value = latest.slice(0, 12)
     featured.value = latest[0] || null
     sideItems.value = latest.slice(1, 5)
@@ -164,7 +185,7 @@ async function loadHome() {
       enrichFeatured(featured.value.id)
     }
   } catch (err) {
-    console.error(err)
+    homeError.value = getMovieApiErrorMessage(err, MOVIE_SOURCE_MAINTENANCE)
   } finally {
     homeLoading.value = false
   }

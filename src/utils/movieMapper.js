@@ -1,5 +1,12 @@
 import { buildImageMovieUrl } from '@/utils/mediaHelper'
 
+const MOVIE_REQUEST_TIMEOUT_MS = 15000
+
+async function fetchMovieApi(axios, url) {
+  const { data } = await axios.get(url, { timeout: MOVIE_REQUEST_TIMEOUT_MS })
+  return data
+}
+
 function stripHtml(html) {
   if (!html) return ''
   return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
@@ -49,19 +56,19 @@ function extractMovieList(data, fallbackTitle) {
 
 export async function fetchMovieList(axios, type, page = 1, filters = {}) {
   const { movieApi } = await import('@/config/apis')
-  const { data } = await axios.get(movieApi.list(type, page, filters))
+  const data = await fetchMovieApi(axios, movieApi.list(type, page, filters))
   return extractMovieList(data, type)
 }
 
 export async function fetchGenreList(axios, slug, page = 1, filters = {}) {
   const { movieApi } = await import('@/config/apis')
-  const { data } = await axios.get(movieApi.genreList(slug, page, filters))
+  const data = await fetchMovieApi(axios, movieApi.genreList(slug, page, filters))
   return extractMovieList(data, slug)
 }
 
 export async function fetchGenres(axios) {
   const { movieApi } = await import('@/config/apis')
-  const { data } = await axios.get(movieApi.genres())
+  const data = await fetchMovieApi(axios, movieApi.genres())
   return (data?.data?.items || data?.items || []).map((g) => ({
     slug: g.slug,
     label: g.name,
@@ -70,7 +77,7 @@ export async function fetchGenres(axios) {
 
 export async function fetchCountries(axios) {
   const { movieApi } = await import('@/config/apis')
-  const { data } = await axios.get(movieApi.countries())
+  const data = await fetchMovieApi(axios, movieApi.countries())
   return (data?.data?.items || data?.items || [])
     .map((c) => ({
       slug: c.slug,
@@ -82,7 +89,7 @@ export async function fetchCountries(axios) {
 
 export async function searchMovies(axios, keyword, page = 1) {
   const { movieApi } = await import('@/config/apis')
-  const { data } = await axios.get(movieApi.search(keyword, page))
+  const data = await fetchMovieApi(axios, movieApi.search(keyword, page))
   const result = extractMovieList(data, keyword)
   const pagination = result.pagination
   return {
