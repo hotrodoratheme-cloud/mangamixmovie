@@ -114,8 +114,6 @@
 
     <BackToTop />
 
-    <NavBackButton />
-
     <BottomNav />
 
     <ToastHost />
@@ -135,7 +133,6 @@ import AppIcon from '@/components/icons/AppIcon.vue'
 import AuthModal from '@/components/auth/AuthModal.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import BackToTop from '@/components/layout/BackToTop.vue'
-import NavBackButton from '@/components/layout/NavBackButton.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
 

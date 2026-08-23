@@ -1,6 +1,6 @@
 <template>
   <div class="reader">
-    <LoadingSkeleton v-if="pageLoading" variant="list" :count="4" />
+    <LoadingSkeleton v-if="pageLoading" variant="reader-page" :count="4" />
     <div v-else-if="pageError" class="error-text reader-error">{{ pageError }}</div>
 
     <template v-else>
@@ -18,7 +18,7 @@
         </template>
       </MangaStoryHero>
 
-      <LoadingSkeleton v-if="chapterLoading" variant="list" :count="3" />
+      <LoadingSkeleton v-if="chapterLoading" variant="reader-chapter" :count="3" />
       <div v-else-if="error" class="error-box">
         <p class="error-text reader-error">{{ error }}</p>
         <button class="btn btn-primary btn-sm" type="button" @click="retryChapter">

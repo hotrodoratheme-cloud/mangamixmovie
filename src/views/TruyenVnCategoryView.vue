@@ -33,7 +33,7 @@
       </div>
     </header>
 
-    <LoadingSkeleton v-if="loading" variant="grid" :count="12" />
+    <LoadingSkeleton v-if="loading" variant="grid" card-type="manga" :count="12" />
     <div v-else-if="error" class="error-text">{{ error }}</div>
 
     <template v-else>

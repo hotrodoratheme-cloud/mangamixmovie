@@ -21,7 +21,7 @@
         </button>
       </div>
 
-      <LoadingSkeleton v-if="loading" variant="grid" :count="8" />
+      <LoadingSkeleton v-if="loading" variant="search" :count="8" />
       <div v-else-if="error" class="error-text">{{ error }}</div>
       <div v-else-if="results.length" class="update-grid">
         <PosterCard
@@ -46,9 +46,7 @@
     <template v-else>
       <FeaturedSpotlight :item="featured" :side-items="sideItems" />
 
-      <div v-if="homeLoading" class="container">
-        <LoadingSkeleton variant="grid" :count="8" />
-      </div>
+      <LoadingSkeleton v-if="homeLoading" variant="browse-home" :count="8" />
       <div v-else-if="homeError" class="error-text">{{ homeError }}</div>
 
       <div v-else class="container home-sections">

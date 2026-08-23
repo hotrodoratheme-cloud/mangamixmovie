@@ -1,6 +1,6 @@
 <template>
   <div class="reader">
-    <LoadingSkeleton v-if="loading" variant="list" :count="4" />
+    <LoadingSkeleton v-if="loading" variant="reader-page" :count="4" />
     <div v-else-if="error" class="error-text reader-error">{{ error }}</div>
 
     <template v-else>
