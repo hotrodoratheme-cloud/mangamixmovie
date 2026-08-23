@@ -77,7 +77,7 @@ const router = useRouter()
 const { theme, toggleTheme } = useTheme()
 const { user, displayName } = useAuth()
 const { showAuth, openAuth, closeAuth, takePendingAction } = useAuthModal()
-const { applyPendingFavorite, invalidateCache } = useFavorites()
+const { applyPendingFavorite } = useFavorites()
 const menuOpen = ref(false)
 const searchQuery = ref('')
 
@@ -127,13 +127,21 @@ function onAuthClose() {
   takePendingAction()
 }
 
+let authFinishLock = false
+
 async function finishAuthSuccess() {
-  closeAuth()
-  clearLoginQuery()
-  const action = takePendingAction()
-  if (action?.kind === 'favorite') {
-    invalidateCache()
-    await applyPendingFavorite(action)
+  if (authFinishLock) return
+  authFinishLock = true
+
+  try {
+    closeAuth()
+    clearLoginQuery()
+    const action = takePendingAction()
+    if (action?.kind === 'favorite') {
+      await applyPendingFavorite(action)
+    }
+  } finally {
+    authFinishLock = false
   }
 }
 

@@ -54,11 +54,15 @@ const active = computed(() => {
 })
 
 const payload = computed(() => ({
-  kind: 'favorite',
   type: props.type,
   itemId: props.itemId,
   itemName: props.itemName,
   poster: props.poster,
+}))
+
+const pendingAuthPayload = computed(() => ({
+  kind: 'favorite',
+  ...payload.value,
 }))
 
 async function onClick() {
@@ -67,7 +71,7 @@ async function onClick() {
   try {
     const result = await toggle(payload.value)
     if (result?.needsAuth) {
-      openAuth(payload.value)
+      openAuth(pendingAuthPayload.value)
     }
   } finally {
     busy.value = false

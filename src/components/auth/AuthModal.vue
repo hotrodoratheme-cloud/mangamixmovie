@@ -210,7 +210,6 @@ watch(
   (userId) => {
     if (userId && loading.value) {
       loading.value = false
-      emit('success')
     }
   }
 )

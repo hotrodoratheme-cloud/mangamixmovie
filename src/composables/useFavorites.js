@@ -55,6 +55,14 @@ function buildKeysFromCloud(cloud) {
   return keys
 }
 
+function mergeFavoriteKeys(userId, cloud = null) {
+  const keys = cloud ? buildKeysFromCloud(cloud) : new Set()
+  for (const key of buildKeysFromStore(localFavorites.getAll(userId))) {
+    keys.add(key)
+  }
+  return keys
+}
+
 function resetFavoritesState() {
   favoriteKeys.value = new Set()
   loadedForUser.value = null
@@ -64,9 +72,11 @@ function resetFavoritesState() {
   favoritesRevision.value += 1
 }
 
-function applyLocalSync(userId) {
-  if (!userId || userId !== loadedForUser.value) return
+function refreshFavoriteKeys(userId) {
+  if (!userId) return
   favoriteKeys.value = buildKeysFromStore(localFavorites.getAll(userId))
+  loadedForUser.value = userId
+  loaded.value = true
   favoritesRevision.value += 1
 }
 
@@ -75,16 +85,18 @@ function initCrossTabSync() {
   syncInitialized = true
 
   onFavoritesChanged((userId) => {
-    applyLocalSync(userId)
+    if (userId && userId === loadedForUser.value) {
+      refreshFavoriteKeys(userId)
+    }
   })
 
   window.addEventListener('focus', () => {
-    if (loadedForUser.value) applyLocalSync(loadedForUser.value)
+    if (loadedForUser.value) refreshFavoriteKeys(loadedForUser.value)
   })
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && loadedForUser.value) {
-      applyLocalSync(loadedForUser.value)
+      refreshFavoriteKeys(loadedForUser.value)
     }
   })
 }
@@ -96,7 +108,8 @@ async function loadFavorites(userId) {
   }
 
   if (loadedForUser.value === userId && loaded.value) {
-    bindFavoritesSync(userId, () => applyLocalSync(userId))
+    bindFavoritesSync(userId, () => refreshFavoriteKeys(userId))
+    refreshFavoriteKeys(userId)
     return
   }
 
@@ -104,22 +117,21 @@ async function loadFavorites(userId) {
 
   loadingPromise = (async () => {
     try {
-      const cloud = await fetchCloudFavorites(userId)
-      favoriteKeys.value = buildKeysFromCloud(cloud)
-      for (const key of buildKeysFromStore(localFavorites.getAll(userId))) {
-        favoriteKeys.value.add(key)
+      let cloud = { movies: [], manga: [], manga_vn: [] }
+      try {
+        cloud = await fetchCloudFavorites(userId)
+      } catch {
+        cloud = { movies: [], manga: [], manga_vn: [] }
       }
-      favoriteKeys.value = new Set(favoriteKeys.value)
+
+      favoriteKeys.value = mergeFavoriteKeys(userId, cloud)
       loadedForUser.value = userId
       loaded.value = true
-      bindFavoritesSync(userId, () => applyLocalSync(userId))
+      bindFavoritesSync(userId, () => refreshFavoriteKeys(userId))
       favoritesRevision.value += 1
     } catch {
-      favoriteKeys.value = buildKeysFromStore(localFavorites.getAll(userId))
-      loadedForUser.value = userId
-      loaded.value = true
-      bindFavoritesSync(userId, () => applyLocalSync(userId))
-      favoritesRevision.value += 1
+      refreshFavoriteKeys(userId)
+      bindFavoritesSync(userId, () => refreshFavoriteKeys(userId))
     } finally {
       loadingPromise = null
     }
@@ -154,6 +166,15 @@ function initAuthBinding() {
 
 initAuthBinding()
 
+function normalizeTogglePayload(payload) {
+  return {
+    type: payload.type,
+    itemId: payload.itemId,
+    itemName: payload.itemName || '',
+    poster: payload.poster || null,
+  }
+}
+
 export function useFavorites() {
   const { user } = useAuth()
 
@@ -166,39 +187,73 @@ export function useFavorites() {
     if (!user.value?.id || !isValidItemId(itemId)) return false
 
     const uid = user.value.id
-    if (loadedForUser.value === uid && loaded.value) {
-      return favoriteKeys.value.has(favoriteKey(type, itemId))
+    const key = favoriteKey(type, itemId)
+
+    if (loadedForUser.value === uid) {
+      return favoriteKeys.value.has(key)
     }
 
     return localFavorites.isFavorite(uid, type, itemId)
   }
 
   async function toggle(payload) {
-    const { type, itemId, itemName, poster } = payload
+    const data = normalizeTogglePayload(payload)
+    const { type, itemId, itemName, poster } = data
+
     if (!user.value?.id) {
-      return { needsAuth: true }
+      return { needsAuth: true, payload: data }
     }
 
     await ensureLoaded()
 
+    const uid = user.value.id
     const key = favoriteKey(type, itemId)
-    const active = favoriteKeys.value.has(key)
+    const wasActive = favoriteKeys.value.has(key)
 
-    if (active) {
-      await removeFavorite(user.value.id, type, itemId)
-      applyLocalSync(user.value.id)
-      return { active: false }
+    const optimistic = new Set(favoriteKeys.value)
+    if (wasActive) optimistic.delete(key)
+    else optimistic.add(key)
+    favoriteKeys.value = optimistic
+    favoritesRevision.value += 1
+
+    try {
+      if (wasActive) {
+        await removeFavorite(uid, type, itemId)
+      } else {
+        await addFavorite(uid, { type, itemId, itemName, poster })
+      }
+      refreshFavoriteKeys(uid)
+      return { active: !wasActive }
+    } catch {
+      refreshFavoriteKeys(uid)
+      return { active: favoriteKeys.value.has(key) }
     }
-
-    await addFavorite(user.value.id, { type, itemId, itemName, poster })
-    applyLocalSync(user.value.id)
-    return { active: true }
   }
 
   async function applyPendingFavorite(payload) {
-    if (!user.value?.id || !payload?.itemId) return
+    const data = normalizeTogglePayload(payload)
+    if (!user.value?.id || !data.itemId) return
+
     await ensureLoaded()
-    return toggle(payload)
+
+    const uid = user.value.id
+    const key = favoriteKey(data.type, data.itemId)
+
+    if (favoriteKeys.value.has(key)) {
+      refreshFavoriteKeys(uid)
+      return { active: true }
+    }
+
+    await addFavorite(uid, data)
+
+    const next = new Set(favoriteKeys.value)
+    next.add(key)
+    favoriteKeys.value = next
+    loadedForUser.value = uid
+    loaded.value = true
+    favoritesRevision.value += 1
+
+    return { active: true }
   }
 
   async function fetchAll() {
@@ -219,12 +274,13 @@ export function useFavorites() {
   async function remove(type, itemId) {
     if (!user.value?.id) return
     await removeFavorite(user.value.id, type, itemId)
-    applyLocalSync(user.value.id)
+    refreshFavoriteKeys(user.value.id)
   }
 
   function invalidateCache() {
     loadedForUser.value = null
     loaded.value = false
+    loadingPromise = null
   }
 
   return {

@@ -45,6 +45,14 @@ function writeStore(userId, data) {
   notifyFavoritesChanged(userId)
 }
 
+let writeQueue = Promise.resolve()
+
+function runSerialized(task) {
+  const next = writeQueue.then(task, task)
+  writeQueue = next.catch(() => {})
+  return next
+}
+
 export function notifyFavoritesChanged(userId) {
   syncChannel?.postMessage({ type: 'sync', userId, ts: Date.now() })
 }
@@ -115,21 +123,21 @@ export function getFavoriteEntryId(item) {
   return normalizeItemId(item?.itemId ?? item?.item_id)
 }
 
-function dedupeStoreList(list = []) {
+function dedupeStoreList(list = [], fallbackType) {
   const map = new Map()
   for (const item of list) {
     const id = getFavoriteEntryId(item)
     if (!id) continue
-    map.set(id, normalizeEntry({ ...item, itemId: id, type: item.type }))
+    map.set(id, normalizeEntry({ ...item, itemId: id, type: item.type || fallbackType }))
   }
   return Array.from(map.values())
 }
 
 function compactStore(store) {
   return {
-    movies: dedupeStoreList(store.movies),
-    manga: dedupeStoreList(store.manga),
-    manga_vn: dedupeStoreList(store.manga_vn),
+    movies: dedupeStoreList(store.movies, 'movie'),
+    manga: dedupeStoreList(store.manga, 'manga'),
+    manga_vn: dedupeStoreList(store.manga_vn, 'manga_vn'),
   }
 }
 
@@ -176,32 +184,37 @@ export const localFavorites = {
 
   /** @param {FavoriteType} type */
   add(userId, payload) {
-    if (!userId) return emptyStore()
-    const store = readStore(userId)
-    const key = storeKey(payload.type)
-    const list = dedupeStoreList(store[key] || [])
-    const entry = normalizeEntry(payload)
-    if (!entry.itemId) return store
+    if (!userId) return Promise.resolve(emptyStore())
 
-    const idx = list.findIndex((i) => getFavoriteEntryId(i) === entry.itemId)
-    if (idx >= 0) list[idx] = entry
-    else list.unshift(entry)
-    store[key] = list
-    writeStore(userId, store)
-    return store
+    return runSerialized(() => {
+      const store = readStore(userId)
+      const key = storeKey(payload.type)
+      const list = dedupeStoreList(store[key] || [], payload.type)
+      const entry = normalizeEntry(payload)
+      if (!entry.itemId) return store
+
+      const idx = list.findIndex((i) => getFavoriteEntryId(i) === entry.itemId)
+      if (idx >= 0) list[idx] = entry
+      else list.unshift(entry)
+      store[key] = list
+      writeStore(userId, compactStore(store))
+      return store
+    })
   },
 
   /** @param {FavoriteType} type */
   remove(userId, type, itemId) {
-    if (!userId) return emptyStore()
+    if (!userId) return Promise.resolve(emptyStore())
     const targetId = normalizeItemId(itemId)
-    if (!targetId) return readStore(userId)
+    if (!targetId) return Promise.resolve(readStore(userId))
 
-    const store = readStore(userId)
-    const key = storeKey(type)
-    store[key] = (store[key] || []).filter((i) => getFavoriteEntryId(i) !== targetId)
-    writeStore(userId, store)
-    return store
+    return runSerialized(() => {
+      const store = readStore(userId)
+      const key = storeKey(type)
+      store[key] = (store[key] || []).filter((i) => getFavoriteEntryId(i) !== targetId)
+      writeStore(userId, compactStore(store))
+      return store
+    })
   },
 
   clearAll(userId) {
@@ -299,7 +312,7 @@ export async function addFavorite(userId, payload) {
   const entry = normalizeEntry(payload)
   if (!entry.itemId) return
 
-  localFavorites.add(userId, entry)
+  await localFavorites.add(userId, entry)
   try {
     await saveCloudFavorite(userId, entry)
   } catch (err) {
@@ -312,7 +325,7 @@ export async function removeFavorite(userId, type, itemId) {
   const targetId = normalizeItemId(itemId)
   if (!targetId) return
 
-  localFavorites.remove(userId, type, targetId)
+  await localFavorites.remove(userId, type, targetId)
   try {
     await deleteCloudFavorite(userId, type, targetId)
   } catch (err) {
