@@ -19,6 +19,7 @@ import { fetchGenres } from '@/utils/movieMapper'
 import { fetchMangaTags } from '@/utils/mangaMapper'
 import { fetchOtruyenGenres } from '@/utils/otruyenMapper'
 import { mangaGenrePath } from '@/utils/mangaTags'
+import { getBrowseCategories } from '@/utils/browseCategoryCache'
 
 const props = defineProps({
   media: {
@@ -48,22 +49,28 @@ const activeSlug = computed(() => {
 async function loadItems() {
   try {
     if (props.media === 'movie') {
-      items.value = await fetchGenres(axios).catch(() => [])
+      items.value = await getBrowseCategories('movie', () =>
+        fetchGenres(axios).catch(() => [])
+      )
       return
     }
 
     if (props.media === 'manga') {
-      const tags = await fetchMangaTags(axios).catch(() => [])
-      items.value = tags.length
-        ? tags
-        : MANGA_FEATURED_TAGS.map((t) => ({ id: t.id, label: t.label, slug: t.slug }))
+      items.value = await getBrowseCategories('manga', async () => {
+        const tags = await fetchMangaTags(axios).catch(() => [])
+        return tags.length
+          ? tags
+          : MANGA_FEATURED_TAGS.map((t) => ({ id: t.id, label: t.label, slug: t.slug }))
+      })
       return
     }
 
-    const genres = await fetchOtruyenGenres(axios).catch(() => [])
-    items.value = genres.length
-      ? genres
-      : OTRUYEN_FEATURED_GENRES.map((g) => ({ slug: g.slug, label: g.label }))
+    items.value = await getBrowseCategories('manga_vn', async () => {
+      const genres = await fetchOtruyenGenres(axios).catch(() => [])
+      return genres.length
+        ? genres
+        : OTRUYEN_FEATURED_GENRES.map((g) => ({ slug: g.slug, label: g.label }))
+    })
   } catch {
     items.value = []
   }

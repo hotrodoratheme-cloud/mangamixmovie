@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useAuthModal } from '@/composables/useAuthModal'
 import { useAuth } from '@/composables/useAuth'
@@ -40,9 +40,9 @@ const props = defineProps({
   },
 })
 
-const { isFavorite, toggle, ensureLoaded, favoritesRevision } = useFavorites()
+const { isFavorite, toggle, favoritesRevision } = useFavorites()
 const { openAuth } = useAuthModal()
-const { user, loading: authLoading } = useAuth()
+const { user } = useAuth()
 
 const busy = ref(false)
 
@@ -77,14 +77,6 @@ async function onClick() {
     busy.value = false
   }
 }
-
-watch(
-  () => [user.value?.id, authLoading.value, props.itemId],
-  async () => {
-    if (!authLoading.value) await ensureLoaded()
-  },
-  { immediate: true }
-)
 </script>
 
 <style scoped>

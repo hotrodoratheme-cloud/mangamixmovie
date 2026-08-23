@@ -361,6 +361,14 @@ async function loadFavorites(silent = false) {
   }
 }
 
+function syncFavoritesFromLocal() {
+  if (!user.value?.id) return
+  const local = getDisplayFavorites()
+  favoriteMovies.value = local.movies
+  favoriteManga.value = local.manga
+  favoriteMangaVn.value = local.manga_vn
+}
+
 async function removeFavoriteItem(type, itemId) {
   removingKey.value = `${type}:${itemId}`
   try {
@@ -405,21 +413,25 @@ watch(
 )
 
 watch(user, () => {
-  if (!authLoading.value) {
-    loadHistory()
-    loadFavorites()
-  }
-})
-
-watch(favoritesRevision, () => {
-  if (!user.value?.id) return
-  void loadFavorites(true)
-})
-
-onMounted(() => {
+  if (authLoading.value) return
   loadHistory()
   loadFavorites()
 })
+
+watch(favoritesRevision, () => {
+  if (!user.value?.id || favoritesLoading.value) return
+  syncFavoritesFromLocal()
+})
+
+watch(
+  () => authLoading.value,
+  (isLoading) => {
+    if (isLoading) return
+    loadHistory()
+    loadFavorites()
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

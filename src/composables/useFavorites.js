@@ -94,6 +94,16 @@ function initCrossTabSync() {
   })
 }
 
+function deferAuthTask(task) {
+  if (typeof window === 'undefined') {
+    void task()
+    return
+  }
+  window.setTimeout(() => {
+    void task()
+  }, 0)
+}
+
 async function loadFavorites(userId) {
   if (!userId) {
     resetFavoritesState()
@@ -102,7 +112,6 @@ async function loadFavorites(userId) {
 
   if (loadedForUser.value === userId && loaded.value) {
     bindFavoritesSync(userId, () => refreshFavoriteKeys(userId))
-    refreshFavoriteKeys(userId)
     return
   }
 
@@ -161,8 +170,8 @@ function initAuthBinding() {
   if (authInitialized || typeof window === 'undefined') return
   authInitialized = true
   initCrossTabSync()
-  getSession().then((session) => handleAuthSession(session))
-  onAuthChange((session) => handleAuthSession(session))
+  getSession().then((session) => deferAuthTask(() => handleAuthSession(session)))
+  onAuthChange((session) => deferAuthTask(() => handleAuthSession(session)))
 }
 
 initAuthBinding()

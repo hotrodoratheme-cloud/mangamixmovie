@@ -128,16 +128,19 @@ export async function fetchMangaTags(axios) {
   )
 }
 
-export async function searchManga(axios, keyword, page = 1, limit = 24) {
+export async function searchManga(axios, keyword, page = 1, limit = 24, options = {}) {
   const { mangaApi } = await import('@/config/apis')
   const offset = (page - 1) * limit
   const { data } = await axios.get(mangaApi.search(keyword, limit, offset))
   const total = data.total || 0
   const ids = (data.data || []).map((entry) => entry.id).filter(Boolean)
-  const latestChaptersMap = await fetchLatestChaptersForMangaIds(axios, ids, {
-    maxItems: limit,
-    concurrency: 4,
-  })
+  const latestChaptersMap =
+    options.withLatestChapters === false
+      ? {}
+      : await fetchLatestChaptersForMangaIds(axios, ids, {
+          maxItems: limit,
+          concurrency: 4,
+        })
 
   return {
     items: mapMangaList(data.data, data.included || [], latestChaptersMap),

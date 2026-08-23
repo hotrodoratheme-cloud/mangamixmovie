@@ -68,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
 import SearchBar from '@/components/search/SearchBar.vue'
 import SearchPagination from '@/components/search/SearchPagination.vue'
@@ -98,6 +98,7 @@ const error = ref('')
 const searchPage = ref(1)
 const totalPages = ref(1)
 const totalItems = ref(0)
+const homeLoaded = ref(false)
 
 async function runSearch() {
   const keyword = query.value.trim()
@@ -113,7 +114,9 @@ async function runSearch() {
   loading.value = true
   error.value = ''
   try {
-    const data = await searchManga(axios, keyword, searchPage.value)
+    const data = await searchManga(axios, keyword, searchPage.value, 24, {
+      withLatestChapters: false,
+    })
     results.value = data.items
     totalPages.value = data.pagination.totalPages
     totalItems.value = data.pagination.totalItems
@@ -206,12 +209,24 @@ function goSearchPage(page) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+function ensureHomeLoaded() {
+  if (homeLoaded.value || showSearchResults.value) return
+  homeLoaded.value = true
+  loadHome()
+}
+
 function onSubmitSearch() {
   searchPage.value = 1
   runSearch()
 }
 
-loadHome()
+watch(showSearchResults, (searching, wasSearching) => {
+  if (wasSearching && !searching) ensureHomeLoaded()
+})
+
+onMounted(() => {
+  ensureHomeLoaded()
+})
 
 watch(
   () => [user.value?.id, authLoading.value],
