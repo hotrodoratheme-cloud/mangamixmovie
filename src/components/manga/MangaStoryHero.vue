@@ -26,6 +26,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { resolveMangaImageSrc } from '@/utils/mangaImage'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -41,9 +42,10 @@ const props = defineProps({
   },
 })
 
-const heroStyle = computed(() =>
-  props.cover ? { backgroundImage: `url(${props.cover})` } : undefined
-)
+const heroStyle = computed(() => {
+  const cover = resolveMangaImageSrc(props.cover)
+  return cover ? { backgroundImage: `url("${cover}")` } : undefined
+})
 </script>
 
 <style scoped>
