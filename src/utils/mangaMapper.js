@@ -46,7 +46,7 @@ export function mapMangaList(data, included = [], latestChaptersMap = {}) {
         id,
         title: getMangaTitle(attrs),
         subtitle: getMangaDescription(attrs).slice(0, 80),
-        cover: getMangaCover(id, manga.relationships || [], included, { thumb: true }),
+        cover: getMangaCover(id, manga.relationships || [], included),
         episode: status,
         isNew: attrs.status === 'ongoing',
         description: getMangaDescription(attrs).slice(0, 220),

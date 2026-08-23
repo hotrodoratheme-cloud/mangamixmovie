@@ -1,7 +1,5 @@
-/** Khi dev local bị chặn DNS MangaDex, fallback qua server Vercel. */
-export const REMOTE_API_BASE =
-  import.meta.env.VITE_REMOTE_API ||
-  (import.meta.env.DEV ? 'https://manmix.vercel.app' : '')
+/** Khi dev local bị chặn DNS MangaDex, set VITE_REMOTE_API=https://manmix.vercel.app */
+export const REMOTE_API_BASE = import.meta.env.VITE_REMOTE_API || ''
 
 export function localApiUrl(path) {
   if (!path.startsWith('/')) return path

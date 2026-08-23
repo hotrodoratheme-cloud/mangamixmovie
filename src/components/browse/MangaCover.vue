@@ -34,6 +34,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { MANGA_PLACEHOLDER, resolveMangaImageSrc, proxyMangaImageUrl } from '@/utils/mangaImage'
+import { deriveOriginalCoverUrls } from '@/utils/mangaCoverUrls'
 import { useLazyReveal } from '@/composables/useLazyReveal'
 
 const props = defineProps({
@@ -55,7 +56,9 @@ const hasUrl = computed(() => Boolean(props.url?.trim()))
 const resolvedSrc = ref('')
 const loaded = ref(false)
 const failed = ref(false)
-let triedOriginal = false
+let fallbackIndex = -1
+
+const coverFallbacks = computed(() => deriveOriginalCoverUrls(props.url))
 
 const imageSrc = computed(() => {
   if (!shouldLoad.value || failed.value) return ''
@@ -71,7 +74,7 @@ const showLoading = computed(() => {
 })
 
 function resetState() {
-  triedOriginal = false
+  fallbackIndex = -1
   loaded.value = false
   failed.value = !hasUrl.value
   resolvedSrc.value = hasUrl.value ? resolveMangaImageSrc(props.url) : ''
@@ -83,10 +86,10 @@ function onError() {
   const current = resolvedSrc.value
   if (current === MANGA_PLACEHOLDER || current.startsWith('data:image/svg+xml')) return
 
-  if (!triedOriginal && props.url?.includes('.512.jpg')) {
-    triedOriginal = true
-    const original = props.url.replace(/\.512\.jpg$/i, '.jpg')
-    resolvedSrc.value = resolveMangaImageSrc(original)
+  const nextFallback = coverFallbacks.value[fallbackIndex + 1]
+  if (nextFallback) {
+    fallbackIndex += 1
+    resolvedSrc.value = resolveMangaImageSrc(nextFallback)
     loaded.value = false
     return
   }
