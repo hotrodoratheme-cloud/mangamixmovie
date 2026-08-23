@@ -240,3 +240,18 @@ img {
   padding: 3px 8px;
   border-radius: 4px;
 }
+
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.media-block {
+  margin-bottom: 20px;
+}
+
+.media-block h3 {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+}

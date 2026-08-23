@@ -4,52 +4,40 @@
     <div v-else-if="error" class="error-text">{{ error }}</div>
 
     <template v-else>
-      <section class="detail-hero container">
-        <div class="hero-cover">
-          <MangaCover :url="manga.cover" :alt="manga.title" loading="eager" />
-        </div>
-        <div class="hero-info">
-          <span v-if="manga.status" class="status-tag">{{ manga.status }}</span>
-          <h1>{{ manga.title }}</h1>
-          <p v-if="manga.altTitle" class="alt-title">{{ manga.altTitle }}</p>
-          <div v-if="manga.genres.length" class="genre-links">
-            <router-link
-              v-for="genre in manga.genres"
-              :key="genre.id"
-              :to="`/truyen-vn/the-loai/${genre.slug || genre.id}`"
-              class="genre-link"
-            >
-              {{ genre.label }}
-            </router-link>
-          </div>
-          <p v-if="manga.authors" class="meta">Tác giả: {{ manga.authors }}</p>
-          <p class="meta">{{ chapters.length }} chapter · {{ manga.year || '—' }}</p>
-
-          <div class="hero-actions">
-            <button
-              v-if="firstChapter"
-              class="btn btn-primary"
-              @click="readChapter(firstChapter)"
-            >
-              ▶ Đọc từ đầu
-            </button>
-            <button
-              v-if="continueChapter"
-              class="btn btn-ghost"
-              @click="readChapter(continueChapter)"
-            >
-              ↪ Tiếp tục đọc
-            </button>
-            <FavoriteButton
-              type="manga_vn"
-              :item-id="String(route.params.slug)"
-              :item-name="manga.title"
-              :poster="manga.cover"
-              variant="label"
-            />
-          </div>
-        </div>
-      </section>
+      <MangaStoryHero
+        :title="manga.title"
+        :cover="manga.cover"
+        :alt-title="manga.altTitle"
+        :description="manga.description"
+        :genres="manga.genres"
+        :status-tag="manga.status"
+        :meta="detailMeta"
+        :genre-link="genreTo"
+      >
+        <template #actions>
+          <button
+            v-if="firstChapter"
+            class="btn btn-primary"
+            @click="readChapter(firstChapter)"
+          >
+            ▶ Đọc từ đầu
+          </button>
+          <button
+            v-if="continueChapter"
+            class="btn btn-ghost"
+            @click="readChapter(continueChapter)"
+          >
+            ↪ Tiếp tục đọc
+          </button>
+          <FavoriteButton
+            type="manga_vn"
+            :item-id="String(route.params.slug)"
+            :item-name="manga.title"
+            :poster="manga.cover"
+            variant="label"
+          />
+        </template>
+      </MangaStoryHero>
 
       <div class="container detail-body">
         <section v-if="manga.genres.length" class="info-block">
@@ -99,7 +87,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
-import MangaCover from '@/components/browse/MangaCover.vue'
+import MangaStoryHero from '@/components/manga/MangaStoryHero.vue'
 import { fetchOtruyenDetail, mapOtruyenDetailMeta } from '@/utils/otruyenMapper'
 import { mapOtruyenChapters } from '@/utils/otruyenChapters'
 import { useNavBack } from '@/composables/useNavBack'
@@ -137,6 +125,17 @@ const continueChapter = computed(() => {
   return chapters.value.find((c) => c.id === chapterId) || null
 })
 
+const detailMeta = computed(() => {
+  const parts = [`${chapters.value.length} chapter`]
+  if (manga.value.authors) parts.unshift(`Tác giả: ${manga.value.authors}`)
+  if (manga.value.year) parts.push(String(manga.value.year))
+  return parts.join(' · ')
+})
+
+function genreTo(genre) {
+  return `/truyen-vn/the-loai/${genre.slug || genre.id}`
+}
+
 function readChapter(ch) {
   router.push({
     path: `/truyen-vn/${route.params.slug}/doc`,
@@ -165,95 +164,7 @@ onMounted(loadDetail)
 
 <style scoped>
 .manga-detail {
-  padding: 16px 0 48px;
-}
-
-.detail-hero {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 28px;
-  padding-top: 12px;
-  padding-bottom: 28px;
-}
-
-.hero-cover :deep(img) {
-  width: 100%;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  aspect-ratio: 3/4;
-  object-fit: cover;
-}
-
-.status-tag {
-  display: inline-block;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 999px;
-  margin-bottom: 10px;
-}
-
-.hero-info h1 {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 800;
-  margin: 0 0 6px;
-  line-height: 1.2;
-  color: var(--text);
-}
-
-.alt-title {
-  color: var(--text-muted);
-  margin: 0 0 10px;
-  font-size: 0.9375rem;
-}
-
-.genre-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 12px;
-}
-
-.genre-link {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  text-decoration: none;
-  transition: all 0.15s;
-}
-
-.genre-link:hover {
-  background: var(--accent);
-  color: #1a1200;
-}
-
-.meta {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  margin: 0 0 6px;
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
-  align-items: center;
-}
-
-.hero-actions .btn,
-.hero-actions :deep(.favorite-btn--label) {
-  min-height: 42px;
-  padding: 10px 20px;
-  font-size: 0.875rem;
-  border-radius: 8px;
-  box-sizing: border-box;
+  padding: 0 0 48px;
 }
 
 .detail-body {
@@ -285,6 +196,28 @@ onMounted(loadDetail)
   line-height: 1.7;
   margin: 0;
   white-space: pre-wrap;
+}
+
+.genre-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.genre-link {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.genre-link:hover {
+  background: var(--accent);
+  color: #1a1200;
 }
 
 .chapter-grid {
@@ -334,22 +267,8 @@ onMounted(loadDetail)
 }
 
 @media (max-width: 640px) {
-  .detail-hero {
-    grid-template-columns: 1fr;
-    text-align: center;
-  }
-
-  .hero-cover {
-    max-width: 180px;
-    margin: 0 auto;
-  }
-
-  .genre-links {
-    justify-content: center;
-  }
-
-  .hero-actions {
-    justify-content: center;
+  .info-block .genre-links {
+    justify-content: flex-start;
   }
 }
 </style>

@@ -376,3 +376,22 @@ export async function removeFavorite(userId, type, itemId) {
     console.warn('Cloud favorite delete failed:', err.message)
   }
 }
+
+export async function clearAllCloudFavorites(userId) {
+  const { supabase } = await import('@/config/supabase')
+  if (!supabase || !userId) return
+
+  const { error } = await supabase.from('favorites').delete().eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function clearAllFavorites(userId) {
+  if (!userId) return
+
+  localFavorites.clearAll(userId)
+  try {
+    await clearAllCloudFavorites(userId)
+  } catch (err) {
+    console.warn('Cloud favorites clear failed:', err.message)
+  }
+}

@@ -6,6 +6,7 @@ import {
   syncLocalStoreWithCloud,
   addFavorite,
   removeFavorite,
+  clearAllFavorites,
   getFavoritesDisplayFromLocal,
   bindFavoritesSync,
   onFavoritesChanged,
@@ -287,6 +288,15 @@ export function useFavorites() {
     refreshFavoriteKeys(user.value.id)
   }
 
+  async function clearAll() {
+    if (!user.value?.id) return
+    await clearAllFavorites(user.value.id)
+    favoriteKeys.value = new Set()
+    loadedForUser.value = user.value.id
+    loaded.value = true
+    favoritesRevision.value += 1
+  }
+
   function invalidateCache() {
     loadedForUser.value = null
     loaded.value = false
@@ -303,6 +313,7 @@ export function useFavorites() {
     fetchAll,
     getDisplayFavorites,
     remove,
+    clearAll,
     invalidateCache,
   }
 }

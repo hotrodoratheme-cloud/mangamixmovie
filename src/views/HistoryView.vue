@@ -34,36 +34,21 @@
           </button>
         </div>
         <div class="history-grid">
-          <div
+          <HistoryMediaCard
             v-for="item in movies"
             :key="item.itemId || item.item_id"
-            class="history-card"
-          >
-            <router-link :to="movieLink(item)" class="history-card-link">
-              <div class="history-poster">
-                <HistoryThumb
-                  type="movie"
-                  :poster="item.poster"
-                  :alt="item.itemName || item.item_name"
-                />
-                <span class="history-play">▶</span>
-              </div>
-              <div class="history-meta">
-                <strong>{{ item.itemName || item.item_name }}</strong>
-                <span class="history-ep">{{ item.episodeName || item.episode_slug || '—' }}</span>
-                <span class="history-action">Tiếp tục xem →</span>
-              </div>
-            </router-link>
-            <button
-              type="button"
-              class="history-delete"
-              title="Xóa khỏi lịch sử"
-              :disabled="clearing"
-              @click="removeItem('movie', item)"
-            >
-              ✕
-            </button>
-          </div>
+            type="movie"
+            :to="movieLink(item)"
+            :title="item.itemName || item.item_name"
+            :poster="item.poster"
+            :subtitle="item.episodeName || item.episode_slug || '—'"
+            action-label="Tiếp tục xem →"
+            action-icon="✕"
+            action-title="Xóa khỏi lịch sử"
+            action-variant="delete"
+            :action-disabled="clearing"
+            @action="removeItem('movie', item)"
+          />
         </div>
       </section>
 
@@ -80,36 +65,21 @@
           </button>
         </div>
         <div class="history-grid">
-          <div
+          <HistoryMediaCard
             v-for="item in manga"
             :key="item.itemId || item.item_id"
-            class="history-card"
-          >
-            <router-link :to="mangaLink(item)" class="history-card-link">
-              <div class="history-poster">
-                <HistoryThumb
-                  type="manga"
-                  :poster="item.poster"
-                  :alt="item.itemName || item.item_name"
-                />
-                <span class="history-play">▶</span>
-              </div>
-              <div class="history-meta">
-                <strong>{{ item.itemName || item.item_name }}</strong>
-                <span class="history-ep">{{ item.chapterName || item.chapter_id || '—' }}</span>
-                <span class="history-action">Tiếp tục đọc →</span>
-              </div>
-            </router-link>
-            <button
-              type="button"
-              class="history-delete"
-              title="Xóa khỏi lịch sử"
-              :disabled="clearing"
-              @click="removeItem('manga', item)"
-            >
-              ✕
-            </button>
-          </div>
+            type="manga"
+            :to="mangaLink(item)"
+            :title="item.itemName || item.item_name"
+            :poster="item.poster"
+            :subtitle="item.chapterName || item.chapter_id || '—'"
+            action-label="Tiếp tục đọc →"
+            action-icon="✕"
+            action-title="Xóa khỏi lịch sử"
+            action-variant="delete"
+            :action-disabled="clearing"
+            @action="removeItem('manga', item)"
+          />
         </div>
       </section>
 
@@ -126,36 +96,21 @@
           </button>
         </div>
         <div class="history-grid">
-          <div
+          <HistoryMediaCard
             v-for="item in mangaVn"
             :key="item.itemId || item.item_id"
-            class="history-card"
-          >
-            <router-link :to="mangaVnLink(item)" class="history-card-link">
-              <div class="history-poster">
-                <HistoryThumb
-                  type="manga_vn"
-                  :poster="item.poster"
-                  :alt="item.itemName || item.item_name"
-                />
-                <span class="history-play">▶</span>
-              </div>
-              <div class="history-meta">
-                <strong>{{ item.itemName || item.item_name }}</strong>
-                <span class="history-ep">{{ item.chapterName || item.chapter_id || '—' }}</span>
-                <span class="history-action">Tiếp tục đọc →</span>
-              </div>
-            </router-link>
-            <button
-              type="button"
-              class="history-delete"
-              title="Xóa khỏi lịch sử"
-              :disabled="clearing"
-              @click="removeItem('manga_vn', item)"
-            >
-              ✕
-            </button>
-          </div>
+            type="manga_vn"
+            :to="mangaVnLink(item)"
+            :title="item.itemName || item.item_name"
+            :poster="item.poster"
+            :subtitle="item.chapterName || item.chapter_id || '—'"
+            action-label="Tiếp tục đọc →"
+            action-icon="✕"
+            action-title="Xóa khỏi lịch sử"
+            action-variant="delete"
+            :action-disabled="clearing"
+            @action="removeItem('manga_vn', item)"
+          />
         </div>
       </section>
 
@@ -169,6 +124,16 @@
         </div>
       </div>
     </template>
+
+    <ConfirmDialog
+      v-if="confirmOpen"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :confirm-label="confirmLabel"
+      :loading="clearing"
+      @confirm="handleConfirm"
+      @cancel="closeConfirm"
+    />
   </div>
 </template>
 
@@ -176,7 +141,8 @@
 import { ref, onMounted, watch } from 'vue'
 import { localHistory, fetchCloudHistory, mergeHistoryLists, removeHistory, clearHistory } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
-import HistoryThumb from '@/components/browse/HistoryThumb.vue'
+import HistoryMediaCard from '@/components/browse/HistoryMediaCard.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const { user, loading: authLoading } = useAuth()
 const movies = ref([])
@@ -185,8 +151,44 @@ const mangaVn = ref([])
 const loading = ref(true)
 const clearing = ref(false)
 
+const confirmOpen = ref(false)
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+const confirmLabel = ref('Xóa')
+let confirmHandler = null
+
+function getItemName(item) {
+  return item.itemName || item.item_name || 'mục này'
+}
+
 function getItemId(item) {
   return item.itemId || item.item_id
+}
+
+function openConfirm(title, message, label, handler) {
+  confirmTitle.value = title
+  confirmMessage.value = message
+  confirmLabel.value = label
+  confirmHandler = handler
+  confirmOpen.value = true
+}
+
+function closeConfirm() {
+  if (clearing.value) return
+  confirmOpen.value = false
+  confirmHandler = null
+}
+
+async function handleConfirm() {
+  if (!confirmHandler || clearing.value) return
+  clearing.value = true
+  try {
+    await confirmHandler()
+  } finally {
+    clearing.value = false
+    confirmOpen.value = false
+    confirmHandler = null
+  }
 }
 
 function movieLink(item) {
@@ -250,49 +252,65 @@ async function removeItem(type, item) {
   const itemId = getItemId(item)
   if (!itemId) return
 
-  clearing.value = true
-  try {
-    await removeHistory(user.value?.id, type, itemId)
-    if (type === 'movie') {
-      movies.value = movies.value.filter((i) => getItemId(i) !== itemId)
-    } else if (type === 'manga_vn') {
-      mangaVn.value = mangaVn.value.filter((i) => getItemId(i) !== itemId)
-    } else {
-      manga.value = manga.value.filter((i) => getItemId(i) !== itemId)
-    }
-  } finally {
-    clearing.value = false
+  openConfirm(
+    'Xóa khỏi lịch sử',
+    `Bạn có chắc muốn xóa "${getItemName(item)}" khỏi lịch sử?`,
+    'Xóa',
+    () => performRemoveItem(type, itemId)
+  )
+}
+
+async function performRemoveItem(type, itemId) {
+  await removeHistory(user.value?.id, type, itemId)
+  if (type === 'movie') {
+    movies.value = movies.value.filter((i) => getItemId(i) !== itemId)
+  } else if (type === 'manga_vn') {
+    mangaVn.value = mangaVn.value.filter((i) => getItemId(i) !== itemId)
+  } else {
+    manga.value = manga.value.filter((i) => getItemId(i) !== itemId)
   }
 }
 
-async function confirmClearType(type) {
+function confirmClearType(type) {
   const label =
     type === 'movie' ? 'phim' : type === 'manga_vn' ? 'truyện VN' : 'truyện'
-  if (!window.confirm(`Xóa toàn bộ lịch sử ${label}?`)) return
+  const count =
+    type === 'movie'
+      ? movies.value.length
+      : type === 'manga_vn'
+        ? mangaVn.value.length
+        : manga.value.length
 
-  clearing.value = true
-  try {
-    await clearHistory(user.value?.id, type)
-    if (type === 'movie') movies.value = []
-    else if (type === 'manga_vn') mangaVn.value = []
-    else manga.value = []
-  } finally {
-    clearing.value = false
-  }
+  openConfirm(
+    `Xóa lịch sử ${label}`,
+    `Bạn có chắc muốn xóa toàn bộ ${count} mục lịch sử ${label}?`,
+    'Xóa tất cả',
+    () => performClearType(type)
+  )
 }
 
-async function confirmClearAll() {
-  if (!window.confirm('Xóa toàn bộ lịch sử phim và truyện?')) return
+async function performClearType(type) {
+  await clearHistory(user.value?.id, type)
+  if (type === 'movie') movies.value = []
+  else if (type === 'manga_vn') mangaVn.value = []
+  else manga.value = []
+}
 
-  clearing.value = true
-  try {
-    await clearHistory(user.value?.id, 'all')
-    movies.value = []
-    manga.value = []
-    mangaVn.value = []
-  } finally {
-    clearing.value = false
-  }
+function confirmClearAll() {
+  const total = movies.value.length + manga.value.length + mangaVn.value.length
+  openConfirm(
+    'Xóa toàn bộ lịch sử',
+    `Bạn có chắc muốn xóa toàn bộ ${total} mục lịch sử phim và truyện?`,
+    'Xóa tất cả',
+    performClearAll
+  )
+}
+
+async function performClearAll() {
+  await clearHistory(user.value?.id, 'all')
+  movies.value = []
+  manga.value = []
+  mangaVn.value = []
 }
 
 watch(user, () => {
@@ -352,130 +370,6 @@ onMounted(loadHistory)
   background: rgba(239, 68, 68, 0.1);
   border-color: var(--danger);
   color: var(--danger);
-}
-
-.history-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-}
-
-.history-card {
-  position: relative;
-  display: flex;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-}
-
-.history-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 8px 24px var(--accent-glow);
-  transform: translateY(-2px);
-}
-
-.history-card-link {
-  display: flex;
-  gap: 14px;
-  flex: 1;
-  min-width: 0;
-  padding: 12px;
-  padding-right: 40px;
-}
-
-.history-delete {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-  z-index: 2;
-}
-
-.history-delete:hover:not(:disabled) {
-  border-color: var(--danger);
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--danger);
-}
-
-.history-delete:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.history-poster {
-  position: relative;
-  flex-shrink: 0;
-  width: 72px;
-  height: 100px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-}
-
-.history-poster :deep(.history-thumb),
-.history-poster :deep(.manga-cover-wrap) {
-  width: 100%;
-  height: 100%;
-}
-
-.history-play {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
-  color: var(--accent);
-  font-size: 1.125rem;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.history-card:hover .history-play {
-  opacity: 1;
-}
-
-.history-meta {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 2px 0;
-}
-
-.history-meta strong {
-  font-size: 0.875rem;
-  font-weight: 700;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.35;
-}
-
-.history-ep {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.history-action {
-  margin-top: auto;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--accent);
 }
 
 .empty-box {

@@ -4,6 +4,20 @@
     <div v-else-if="error" class="error-text reader-error">{{ error }}</div>
 
     <template v-else>
+      <MangaStoryHero
+        :title="manga.title"
+        :cover="manga.cover"
+        :description="manga.description"
+        :genres="manga.genres"
+        :genre-link="genreTo"
+      >
+        <template #actions>
+          <button class="btn btn-primary btn-sm" type="button" @click="goBackToDetail">
+            Xem thông tin truyện →
+          </button>
+        </template>
+      </MangaStoryHero>
+
       <div class="reader-shell">
         <div v-if="currentVariants.length > 1" class="server-bar">
           <label for="server-picker">Nhóm dịch</label>
@@ -23,29 +37,15 @@
           @error="onImageError"
         />
 
-        <section v-if="images.length" class="reader-info">
-          <div class="reader-info-flex">
-            <div class="reader-info-cover">
-              <MangaCover :url="manga.cover" :alt="manga.title" />
-            </div>
-            <div class="reader-info-text">
-              <h2>{{ manga.title }}</h2>
-              <div v-if="manga.genres.length" class="genre-links">
-                <router-link
-                  v-for="genre in manga.genres"
-                  :key="genre.id"
-                  :to="genreTo(genre)"
-                  class="genre-link"
-                >
-                  {{ genre.label }}
-                </router-link>
-              </div>
-              <p v-if="manga.description" class="reader-desc">{{ manga.description }}</p>
-              <button class="btn btn-ghost btn-sm" type="button" @click="goBackToDetail">
-                Xem thông tin truyện →
-              </button>
-            </div>
-          </div>
+        <section v-if="images.length" class="reader-info-wrap">
+          <MangaStoryInfoPanel
+            :title="manga.title"
+            :cover="manga.cover"
+            :description="manga.description"
+            :genres="manga.genres"
+            :genre-link="genreTo"
+            @detail="goBackToDetail"
+          />
         </section>
       </main>
       </div>
@@ -95,8 +95,9 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { mangaApi } from '@/config/apis'
-import MangaCover from '@/components/browse/MangaCover.vue'
 import MangaChapterImage from '@/components/browse/MangaChapterImage.vue'
+import MangaStoryHero from '@/components/manga/MangaStoryHero.vue'
+import MangaStoryInfoPanel from '@/components/manga/MangaStoryInfoPanel.vue'
 import {
   getMangaTitle,
   getMangaDescription,
@@ -359,77 +360,8 @@ onMounted(init)
   margin-bottom: 2px;
 }
 
-.reader-info {
-  margin-top: 24px;
-  padding: 20px 16px;
-  background: var(--bg-elevated);
-  border-top: 1px solid var(--border);
-  border-radius: 0 0 var(--radius) var(--radius);
-}
-
-.reader-info-flex {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-.reader-info-cover {
-  flex-shrink: 0;
-  width: 110px;
-}
-
-.reader-info-cover :deep(img) {
-  width: 100%;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  aspect-ratio: 3/4;
-  object-fit: cover;
-}
-
-.reader-info-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.reader-info-text h2 {
-  margin: 0 0 10px;
-  font-size: 1.125rem;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.3;
-}
-
-.genre-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.genre-link {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  text-decoration: none;
-}
-
-.genre-link:hover {
-  background: var(--accent);
-  color: #1a1200;
-}
-
-.reader-desc {
-  margin: 0 0 12px;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  color: var(--text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.reader-info-wrap {
+  margin-top: 0;
 }
 
 .reader-bottom {
@@ -521,16 +453,6 @@ onMounted(init)
 
   .nav-btn-back {
     padding: 10px 10px;
-  }
-
-  .reader-info-flex {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .genre-links {
-    justify-content: center;
   }
 }
 </style>
