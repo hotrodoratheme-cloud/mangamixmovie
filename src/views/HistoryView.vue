@@ -139,7 +139,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { localHistory, fetchCloudHistory, mergeHistoryLists, removeHistory, clearHistory } from '@/services/history'
+import { localHistory, fetchCloudHistory, mergeHistoryLists, removeHistory, clearHistory, buildMovieDetailLink } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
 import HistoryMediaCard from '@/components/browse/HistoryMediaCard.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
@@ -192,12 +192,7 @@ async function handleConfirm() {
 }
 
 function movieLink(item) {
-  const id = getItemId(item)
-  const ep = item.episodeSlug || item.episode_slug
-  return {
-    path: `/phim/${id}`,
-    query: ep ? { ep } : {},
-  }
+  return buildMovieDetailLink(item)
 }
 
 function mangaLink(item) {

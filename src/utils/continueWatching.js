@@ -1,4 +1,4 @@
-import { localHistory, getHistoryEntryId } from '@/services/history'
+import { localHistory, getHistoryEntryId, buildMovieDetailLink } from '@/services/history'
 
 function toContinueItem(entry, type) {
   const itemId = getHistoryEntryId(entry)
@@ -8,15 +8,12 @@ function toContinueItem(entry, type) {
   const poster = entry.poster || ''
 
   if (type === 'movie') {
-    const query = entry.episodeSlug || entry.episode_slug
-      ? { ep: entry.episodeSlug || entry.episode_slug }
-      : undefined
     return {
       id: itemId,
       title: name,
       cover: poster,
       subtitle: entry.episodeName || entry.episode_name || entry.episodeSlug || 'Tiếp tục xem',
-      to: { path: `/phim/${itemId}`, query },
+      to: buildMovieDetailLink(entry),
     }
   }
 

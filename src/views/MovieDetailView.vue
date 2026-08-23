@@ -31,7 +31,10 @@
 
       <section v-if="currentEpisode" ref="playerSectionRef" id="movie-player" class="player-section">
         <div class="container">
-          <p class="now-playing">Đang phát: {{ currentEpisode.name }}</p>
+          <p class="now-playing">
+            Đang phát: {{ currentEpisode.name }}
+            <span v-if="resumeLabel" class="resume-label">· {{ resumeLabel }}</span>
+          </p>
           <video
             v-if="playerMode === 'hls'"
             ref="videoRef"
@@ -100,7 +103,7 @@ import { movieApi } from '@/config/apis'
 import { buildImageMovieUrl } from '@/utils/mediaHelper'
 import { getHlsCandidates, getEmbedUrl } from '@/utils/streamHelper'
 import { getMovieApiErrorMessage, MOVIE_LOAD_ERROR } from '@/utils/apiErrors'
-import { saveHistory, getMovieProgress } from '@/services/history'
+import { saveHistory, getMovieEpisodeResumeSeconds } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
 import { usePageMeta } from '@/composables/usePageMeta'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
@@ -138,6 +141,7 @@ usePageMeta(pageTitle)
 
 let progressTimer = null
 let lastSavedProgress = 0
+const resumeLabel = ref('')
 
 function scrollToPlayer() {
   nextTick(() => {
@@ -172,6 +176,7 @@ function resetPlayer() {
   playerError.value = ''
   playerMode.value = 'hls'
   embedSrc.value = ''
+  resumeLabel.value = ''
 }
 
 function updateRoute({ ep, server } = {}) {
@@ -282,17 +287,26 @@ function attachProgressTracking(video, ep) {
   }, 10000)
 }
 
-function tryResumePlayback(video, ep) {
-  const saved = getMovieProgress(route.params.slug)
-  if (!saved || saved.episodeSlug !== ep.slug || saved.progressSeconds < 15) return
+function formatResumeLabel(seconds) {
+  const total = Math.max(0, Math.floor(seconds))
+  const mins = Math.floor(total / 60)
+  const secs = total % 60
+  return `Tiếp tục từ ${mins}:${String(secs).padStart(2, '0')}`
+}
+
+function applyResumeToVideo(video, resumeSeconds) {
+  if (!video || !resumeSeconds || resumeSeconds < 15) return false
 
   const seek = () => {
-    if (video.duration && saved.progressSeconds >= video.duration - 15) return
-    video.currentTime = saved.progressSeconds
+    if (video.duration && resumeSeconds >= video.duration - 15) return
+    video.currentTime = resumeSeconds
+    resumeLabel.value = formatResumeLabel(resumeSeconds)
   }
 
   if (video.readyState >= 1) seek()
   else video.addEventListener('loadedmetadata', seek, { once: true })
+
+  return true
 }
 
 function loadVideo(ep) {
@@ -300,6 +314,11 @@ function loadVideo(ep) {
   cleanup()
   playerError.value = ''
   embedSrc.value = ''
+  resumeLabel.value = ''
+
+  const resumeSeconds = getMovieEpisodeResumeSeconds(route.params.slug, ep)
+  lastSavedProgress = resumeSeconds
+  recordHistory(ep, resumeSeconds)
 
   const sources = getHlsCandidates(ep.link_m3u8)
   const embed = getEmbedUrl(ep)
@@ -308,7 +327,7 @@ function loadVideo(ep) {
     if (token !== playSeq) return
     if (embed) {
       switchEmbed(ep)
-      recordHistory(ep)
+      recordHistory(ep, resumeSeconds)
       return
     }
     playerError.value = 'Không thể phát video.'
@@ -335,10 +354,10 @@ function loadVideo(ep) {
 
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url
+        applyResumeToVideo(video, resumeSeconds)
+        attachProgressTracking(video, ep)
         video.play().catch(onFatal)
         video.onerror = onFatal
-        tryResumePlayback(video, ep)
-        attachProgressTracking(video, ep)
         return
       }
 
@@ -352,7 +371,7 @@ function loadVideo(ep) {
         hls.loadSource(url)
         hls.attachMedia(video)
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          tryResumePlayback(video, ep)
+          applyResumeToVideo(video, resumeSeconds)
           attachProgressTracking(video, ep)
           video.play().catch(onFatal)
         })
@@ -379,7 +398,6 @@ function loadVideo(ep) {
     return
   }
 
-  recordHistory(ep)
   trySource(0)
 }
 
@@ -552,6 +570,11 @@ onBeforeUnmount(cleanup)
   color: var(--text-muted);
   font-size: 0.875rem;
   margin-bottom: 12px;
+}
+
+.resume-label {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .player {

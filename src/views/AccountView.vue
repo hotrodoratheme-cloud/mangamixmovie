@@ -219,7 +219,7 @@
 import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { fetchCloudHistory, localHistory, mergeHistoryLists } from '@/services/history'
+import { fetchCloudHistory, localHistory, mergeHistoryLists, buildMovieDetailLink } from '@/services/history'
 import { useFavorites } from '@/composables/useFavorites'
 import { mergeFavoriteLists } from '@/services/favorites'
 import HistoryMediaCard from '@/components/browse/HistoryMediaCard.vue'
@@ -267,9 +267,7 @@ function getItemId(item) {
 }
 
 function movieLink(item) {
-  const id = getItemId(item)
-  const ep = item.episodeSlug || item.episode_slug
-  return { path: `/phim/${id}`, query: ep ? { ep } : {} }
+  return buildMovieDetailLink(item)
 }
 
 function mangaLink(item) {

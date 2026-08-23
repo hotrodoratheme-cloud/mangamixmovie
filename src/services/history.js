@@ -159,6 +159,28 @@ export function getMovieProgress(itemId) {
   }
 }
 
+export function episodeMatchesHistory(episode, savedEpisodeSlug) {
+  if (!savedEpisodeSlug || !episode) return false
+  const key = String(savedEpisodeSlug)
+  return episode.slug === key || episode.name === key
+}
+
+export function getMovieEpisodeResumeSeconds(itemId, episode) {
+  const saved = getMovieProgress(itemId)
+  if (!saved || !episodeMatchesHistory(episode, saved.episodeSlug)) return 0
+  const seconds = saved.progressSeconds || 0
+  return seconds >= 15 ? seconds : 0
+}
+
+export function buildMovieDetailLink(item) {
+  const itemId = getHistoryEntryId(item)
+  const episodeSlug = item?.episodeSlug || item?.episode_slug
+  return {
+    path: `/phim/${itemId}`,
+    query: episodeSlug ? { ep: episodeSlug } : undefined,
+  }
+}
+
 export async function fetchCloudHistory(userId) {
   const { supabase } = await import('@/config/supabase')
   if (!supabase) return { movies: [], manga: [] }
