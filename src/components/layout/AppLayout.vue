@@ -118,6 +118,8 @@
 
     <ToastHost />
 
+    <StudyDisclaimerModal />
+
     <AuthModal v-if="showAuth" @close="onAuthClose" @success="onAuthSuccess" />
   </div>
 </template>
@@ -135,6 +137,7 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import BackToTop from '@/components/layout/BackToTop.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
 import ToastHost from '@/components/ui/ToastHost.vue'
+import StudyDisclaimerModal from '@/components/ui/StudyDisclaimerModal.vue'
 
 const route = useRoute()
 const router = useRouter()

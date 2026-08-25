@@ -276,10 +276,8 @@ watch(
   padding-bottom: 48px;
 }
 
-@media (max-width: 1024px) {
-  .page-search {
-    display: none;
-  }
+.page-search {
+  display: none;
 }
 
 .results-section {

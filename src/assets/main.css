@@ -73,6 +73,31 @@ input {
 button {
   cursor: pointer;
   color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button::-moz-focus-inner {
+  border: 0;
+}
+
+button:focus,
+button:focus-visible,
+.btn:focus,
+.btn:focus-visible,
+.icon-btn:focus,
+.icon-btn:focus-visible,
+.chip:focus,
+.chip:focus-visible,
+a:focus,
+a:focus-visible,
+summary:focus,
+summary:focus-visible,
+input[type='button']:focus,
+input[type='submit']:focus,
+input[type='reset']:focus,
+select:focus,
+select:focus-visible {
+  outline: none;
 }
 
 img {
