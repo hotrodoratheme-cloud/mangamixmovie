@@ -5,10 +5,11 @@
       <router-link
         v-if="seeAllTo"
         :to="seeAllTo"
-        class="see-all"
+        class="see-all link-arrow"
         @click="onSeeAll"
       >
-        Xem tất cả →
+        Xem tất cả
+        <AppIcon name="chevron-right" :size="14" />
       </router-link>
     </div>
     <div class="update-grid">
@@ -24,6 +25,7 @@
 
 <script setup>
 import PosterCard from './PosterCard.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const props = defineProps({
   title: { type: String, default: 'Mới cập nhật' },

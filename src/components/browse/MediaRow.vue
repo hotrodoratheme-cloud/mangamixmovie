@@ -5,10 +5,11 @@
       <router-link
         v-if="seeAllTo"
         :to="seeAllTo"
-        class="see-all"
+        class="see-all link-arrow"
         @click="onSeeAll"
       >
-        Xem tất cả →
+        Xem tất cả
+        <AppIcon name="chevron-right" :size="14" />
       </router-link>
     </div>
     <AppSwiper :id="swiperId" :items="items" :rows="swiperRows" />
@@ -18,6 +19,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppSwiper from './AppSwiper.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -69,10 +71,14 @@ function onSeeAll() {
 }
 
 .see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.8125rem;
   color: var(--accent);
   font-weight: 600;
   white-space: nowrap;
+  line-height: 1.2;
   position: relative;
   z-index: 2;
   cursor: pointer;

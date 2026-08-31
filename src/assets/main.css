@@ -162,10 +162,19 @@ img {
 }
 
 .section-head .see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.8125rem;
   color: var(--accent);
   font-weight: 600;
   white-space: nowrap;
+  line-height: 1.2;
+}
+
+.section-head .see-all .app-icon {
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
 .section-head .see-all:hover {
@@ -285,7 +294,22 @@ img {
 .app-icon {
   display: block;
   flex-shrink: 0;
-  vertical-align: middle;
+}
+
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
+}
+
+.link-arrow .app-icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.btn-icon-inline .app-icon {
+  flex-shrink: 0;
 }
 
 .clear-search-btn {

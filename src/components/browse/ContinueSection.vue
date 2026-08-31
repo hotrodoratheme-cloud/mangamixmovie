@@ -2,7 +2,10 @@
   <section v-if="items.length" class="continue-section">
     <div class="section-head">
       <h2>{{ resolvedTitle }}</h2>
-      <router-link v-if="seeAllTo" :to="seeAllTo" class="see-all">Xem tất cả →</router-link>
+      <router-link v-if="seeAllTo" :to="seeAllTo" class="see-all link-arrow">
+        Xem tất cả
+        <AppIcon name="chevron-right" :size="14" />
+      </router-link>
     </div>
     <div class="update-grid">
       <PosterCard
@@ -18,6 +21,7 @@
 <script setup>
 import { computed } from 'vue'
 import PosterCard from '@/components/browse/PosterCard.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 import { useContinueHistory } from '@/composables/useContinueHistory'
 
 const props = defineProps({

@@ -17,7 +17,10 @@
       <div class="history-meta">
         <strong>{{ title }}</strong>
         <span v-if="subtitle" class="history-ep">{{ subtitle }}</span>
-        <span v-if="actionLabel" class="history-action">{{ actionLabel }}</span>
+        <span v-if="actionLabel" class="history-action">
+          {{ actionLabelText }}
+          <AppIcon name="chevron-right" :size="13" class="history-action-icon" />
+        </span>
       </div>
     </router-link>
     <button
@@ -67,7 +70,15 @@ const props = defineProps({
 defineEmits(['action'])
 
 const hasAction = computed(() => Boolean(props.actionIcon))
-const actionIconSize = computed(() => (props.actionVariant === 'favorite' ? 16 : 14))
+const actionIconSize = computed(() => {
+  if (props.actionVariant === 'favorite') return 16
+  if (props.actionIcon === 'trash') return 15
+  return 14
+})
+
+const actionLabelText = computed(() =>
+  String(props.actionLabel || '').replace(/\s*→\s*$/, '').trim()
+)
 </script>
 
 <style scoped>
@@ -161,9 +172,17 @@ const actionIconSize = computed(() => (props.actionVariant === 'favorite' ? 16 :
 
 .history-action {
   margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--accent);
+}
+
+.history-action-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
 }
 
 .history-card-btn {
@@ -171,9 +190,10 @@ const actionIconSize = computed(() => (props.actionVariant === 'favorite' ? 16 :
   top: 8px;
   right: 8px;
   z-index: 2;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  line-height: 0;
   transition: all 0.15s;
 }
 

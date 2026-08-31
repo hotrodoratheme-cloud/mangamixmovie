@@ -46,6 +46,10 @@ defineEmits(['update:modelValue', 'search'])
 .search-icon {
   opacity: 0.55;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
 
 input {

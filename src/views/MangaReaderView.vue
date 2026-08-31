@@ -12,8 +12,9 @@
         :genre-link="genreTo"
       >
         <template #actions>
-          <button class="btn btn-primary btn-sm" type="button" @click="goBackToDetail">
-            Xem thông tin truyện →
+          <button class="btn btn-primary btn-sm btn-play-inline" type="button" @click="goBackToDetail">
+            Xem thông tin truyện
+            <AppIcon name="chevron-right" :size="14" />
           </button>
         </template>
       </MangaStoryHero>

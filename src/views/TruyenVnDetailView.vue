@@ -28,7 +28,8 @@
             class="btn btn-ghost btn-play-inline"
             @click="readChapter(continueChapter)"
           >
-            ↪ Tiếp tục đọc
+            <AppIcon name="undo" :size="16" />
+            Tiếp tục đọc
           </button>
           <FavoriteButton
             type="manga_vn"

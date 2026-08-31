@@ -8,7 +8,7 @@
         :aria-labelledby="titleId"
       >
         <div class="confirm-icon" :class="{ 'confirm-icon--danger': variant === 'danger' }">
-          {{ icon }}
+          <AppIcon :name="iconName" :size="24" />
         </div>
         <h3 :id="titleId" class="confirm-title">{{ title }}</h3>
         <p class="confirm-message">{{ message }}</p>
@@ -38,6 +38,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -56,7 +57,7 @@ const emit = defineEmits(['confirm', 'cancel'])
 
 const titleId = `confirm-title-${Math.random().toString(36).slice(2, 9)}`
 
-const icon = computed(() => (props.variant === 'danger' ? '🗑️' : '❓'))
+const iconName = computed(() => (props.variant === 'danger' ? 'trash' : 'help'))
 
 function onCancel() {
   if (props.loading) return
@@ -96,14 +97,16 @@ function onCancel() {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.375rem;
+  line-height: 0;
   background: var(--bg-card);
   border: 1px solid var(--border);
+  color: var(--text-muted);
 }
 
 .confirm-icon--danger {
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.35);
+  color: var(--danger);
 }
 
 .confirm-title {

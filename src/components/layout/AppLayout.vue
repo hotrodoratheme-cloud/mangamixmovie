@@ -391,6 +391,12 @@ function onSearch() {
   font-weight: 600;
   color: var(--text-muted);
   transition: all 0.15s;
+  line-height: 1.2;
+}
+
+.nav a .app-icon {
+  flex-shrink: 0;
+  display: block;
 }
 
 .nav a:hover,

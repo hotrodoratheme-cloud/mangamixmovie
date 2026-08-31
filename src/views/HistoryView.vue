@@ -13,10 +13,11 @@
       <button
         v-if="!loading && (movies.length || manga.length || mangaVn.length)"
         type="button"
-        class="btn btn-ghost btn-sm history-clear-all"
+        class="btn btn-ghost btn-sm history-clear-all btn-icon-inline"
         :disabled="clearing"
         @click="confirmClearAll"
       >
+        <AppIcon name="trash" :size="14" />
         Xóa toàn bộ
       </button>
     </div>
@@ -32,10 +33,11 @@
           </h2>
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            class="btn btn-ghost btn-sm btn-icon-inline"
             :disabled="clearing"
             @click="confirmClearType('movie')"
           >
+            <AppIcon name="trash" :size="14" />
             Xóa tất cả phim
           </button>
         </div>
@@ -49,7 +51,7 @@
             :poster="item.poster"
             :subtitle="item.episodeName || item.episode_slug || '—'"
             action-label="Tiếp tục xem →"
-            action-icon="close"
+            action-icon="trash"
             action-title="Xóa khỏi lịch sử"
             action-variant="delete"
             :action-disabled="clearing"
@@ -66,10 +68,11 @@
           </h2>
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            class="btn btn-ghost btn-sm btn-icon-inline"
             :disabled="clearing"
             @click="confirmClearType('manga')"
           >
+            <AppIcon name="trash" :size="14" />
             Xóa tất cả truyện
           </button>
         </div>
@@ -83,7 +86,7 @@
             :poster="item.poster"
             :subtitle="item.chapterName || item.chapter_id || '—'"
             action-label="Tiếp tục đọc →"
-            action-icon="close"
+            action-icon="trash"
             action-title="Xóa khỏi lịch sử"
             action-variant="delete"
             :action-disabled="clearing"
@@ -94,13 +97,17 @@
 
       <section v-if="mangaVn.length" class="history-section">
         <div class="section-head">
-          <h2>Truyện VN</h2>
+          <h2 class="section-title-icon">
+            <AppIcon name="book" :size="18" />
+            Truyện VN
+          </h2>
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            class="btn btn-ghost btn-sm btn-icon-inline"
             :disabled="clearing"
             @click="confirmClearType('manga_vn')"
           >
+            <AppIcon name="trash" :size="14" />
             Xóa tất cả truyện VN
           </button>
         </div>
@@ -114,7 +121,7 @@
             :poster="item.poster"
             :subtitle="item.chapterName || item.chapter_id || '—'"
             action-label="Tiếp tục đọc →"
-            action-icon="close"
+            action-icon="trash"
             action-title="Xóa khỏi lịch sử"
             action-variant="delete"
             :action-disabled="clearing"

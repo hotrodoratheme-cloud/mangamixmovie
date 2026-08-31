@@ -9,7 +9,7 @@
       title="Lên đầu trang"
       @click="scrollToTop"
     >
-      ↑
+      <AppIcon name="chevron-up" :size="20" />
     </button>
   </Transition>
 </template>
@@ -17,6 +17,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const route = useRoute()
 const visible = ref(false)
@@ -53,9 +54,10 @@ onUnmounted(() => {
   border-radius: 50%;
   background: var(--bg-elevated);
   color: var(--accent);
-  font-size: 1.25rem;
-  font-weight: 800;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(10px);
   transition: transform 0.2s, background 0.2s, border-color 0.2s, color 0.2s;

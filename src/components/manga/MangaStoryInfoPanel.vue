@@ -19,11 +19,12 @@
         <p v-if="description" class="story-desc">{{ description }}</p>
         <button
           v-if="showDetailButton"
-          class="btn btn-ghost btn-sm"
+          class="btn btn-ghost btn-sm btn-icon-inline"
           type="button"
           @click="$emit('detail')"
         >
-          Xem thông tin truyện →
+          Xem thông tin truyện
+          <AppIcon name="chevron-right" :size="14" />
         </button>
       </div>
     </div>
@@ -32,6 +33,7 @@
 
 <script setup>
 import MangaCover from '@/components/browse/MangaCover.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 defineProps({
   title: { type: String, required: true },

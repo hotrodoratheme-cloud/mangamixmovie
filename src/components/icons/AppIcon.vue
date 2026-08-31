@@ -97,6 +97,33 @@
         :fill="filled ? 'currentColor' : 'none'"
       />
     </template>
+
+    <template v-else-if="name === 'trash'">
+      <path d="M4 7h16" />
+      <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+      <path d="M6 7l1 12a1 1 0 0 0 1 .9h8a1 1 0 0 0 1-.9L18 7" />
+      <path d="M10 11v5M14 11v5" />
+    </template>
+
+    <template v-else-if="name === 'help'">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9a2.5 2.5 0 0 1 4.2 1.8c0 2-2.5 2.5-2.5 4.2" />
+      <path d="M12 17h.01" />
+    </template>
+
+    <template v-else-if="name === 'chevron-up'">
+      <path d="m18 15-6-6-6 6" />
+    </template>
+
+    <template v-else-if="name === 'arrow-right'">
+      <path d="M5 12h14" />
+      <path d="m13 6 6 6-6 6" />
+    </template>
+
+    <template v-else-if="name === 'undo'">
+      <path d="M3 7v6h6" />
+      <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+    </template>
   </svg>
 </template>
 
