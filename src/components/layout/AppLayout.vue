@@ -43,11 +43,18 @@
             </button>
           </form>
 
-          <button v-if="user" class="user-pill" @click="router.push('/tai-khoan')">
+          <button v-if="user" class="user-pill header-account-btn" @click="router.push('/tai-khoan')">
             {{ displayName }}
           </button>
-          <button v-else class="btn btn-primary btn-sm header-login-btn" @click="openAuth()">
-            Đăng nhập
+          <button
+            v-else
+            type="button"
+            class="icon-btn header-account-btn"
+            aria-label="Đăng nhập"
+            title="Đăng nhập"
+            @click="openAuth()"
+          >
+            <AppIcon name="user" :size="18" />
           </button>
 
           <button
@@ -96,8 +103,8 @@
 
       <nav v-if="menuOpen" class="mobile-nav container">
         <router-link to="/phim" @click="menuOpen = false">Phim</router-link>
-        <router-link to="/truyen" @click="menuOpen = false">Truyện</router-link>
         <router-link to="/truyen-vn" @click="menuOpen = false">Truyện VN</router-link>
+        <router-link to="/truyen" @click="menuOpen = false">Truyện</router-link>
         <router-link to="/lich-su" @click="menuOpen = false">Lịch sử</router-link>
       </nav>
     </header>
@@ -394,7 +401,7 @@ function onSearch() {
 
 .header-end {
   --header-item-gap: 10px;
-  --header-action-h: 38px;
+  --header-action-h: 40px;
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -406,12 +413,14 @@ function onSearch() {
 .header-search {
   flex: 1;
   max-width: 360px;
+  height: var(--header-action-h);
   display: flex;
   align-items: center;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 4px 4px 4px 16px;
+  padding: 2px 2px 2px 16px;
+  box-sizing: border-box;
 }
 
 .header-search input {
@@ -428,8 +437,8 @@ function onSearch() {
 }
 
 .header-search button {
-  width: 36px;
-  height: 36px;
+  width: calc(var(--header-action-h) - 4px);
+  height: calc(var(--header-action-h) - 4px);
   border-radius: 50%;
   border: none;
   background: var(--accent);
@@ -450,27 +459,40 @@ function onSearch() {
   line-height: 1;
 }
 
+.header-account-btn {
+  flex-shrink: 0;
+}
+
 .icon-btn {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 7px 10px;
   font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-toggle-btn,
 .theme-btn,
-.menu-btn {
+.menu-btn,
+.header-account-btn.icon-btn {
   width: var(--header-action-h);
   height: var(--header-action-h);
   min-width: var(--header-action-h);
   min-height: var(--header-action-h);
   padding: 0;
   border-radius: 50%;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   box-sizing: border-box;
+}
+
+.header-account-btn.icon-btn :deep(.app-icon) {
+  display: block;
 }
 
 .theme-btn {
@@ -598,7 +620,8 @@ function onSearch() {
   }
 
   .nav,
-  .header-search {
+  .header-search,
+  .header-account-btn {
     display: none;
   }
 

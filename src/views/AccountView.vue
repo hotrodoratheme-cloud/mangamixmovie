@@ -20,7 +20,12 @@
       </h1>
           <p class="page-subtitle">Quản lý hồ sơ, yêu thích và lịch sử xem</p>
         </div>
-        <button type="button" class="btn btn-ghost btn-sm" :disabled="signingOut" @click="handleSignOut">
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm logout-btn"
+          :disabled="signingOut"
+          @click="handleSignOut"
+        >
           Đăng xuất
         </button>
       </div>
@@ -514,8 +519,19 @@ watch(
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 24px;
+}
+
+.account-header > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.logout-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-self: flex-start;
 }
 
 .guest-box {

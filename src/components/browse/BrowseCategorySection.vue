@@ -2,6 +2,7 @@
   <section class="container browse-top">
     <slot />
     <CategoryBar
+      class="browse-category-bar"
       :items="items"
       :model-value="activeSlug"
       @select="onSelect"
@@ -100,5 +101,15 @@ onMounted(loadItems)
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  .browse-category-bar {
+    display: none;
+  }
+
+  .browse-top {
+    padding-bottom: 0;
+  }
 }
 </style>

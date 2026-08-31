@@ -158,7 +158,7 @@ async function loadDetail() {
   try {
     const [detailRes, chapterList, tagList] = await Promise.all([
       axios.get(mangaApi.detail(route.params.id)),
-      fetchMangaChapterCatalog(axios, route.params.id),
+      fetchMangaChapterCatalog(axios, route.params.id, { allLanguages: true }),
       fetchMangaTags(axios).catch(() => []),
     ])
 

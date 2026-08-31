@@ -36,21 +36,23 @@
             Đang phát: {{ currentEpisode.name }}
             <span v-if="resumeLabel" class="resume-label">· {{ resumeLabel }}</span>
           </p>
-          <video
-            v-if="playerMode === 'hls'"
-            ref="videoRef"
-            controls
-            autoplay
-            playsinline
-            class="player"
-          />
-          <iframe
-            v-else-if="playerMode === 'embed'"
-            :src="embedSrc"
-            class="player embed"
-            allowfullscreen
-            allow="autoplay; encrypted-media; picture-in-picture"
-          />
+          <div class="player-frame">
+            <video
+              v-if="playerMode === 'hls'"
+              ref="videoRef"
+              controls
+              autoplay
+              playsinline
+              class="player"
+            />
+            <iframe
+              v-else-if="playerMode === 'embed'"
+              :src="embedSrc"
+              class="player embed"
+              allowfullscreen
+              allow="autoplay; encrypted-media; picture-in-picture"
+            />
+          </div>
           <p v-if="playerError" class="error-text">{{ playerError }}</p>
         </div>
       </section>
@@ -579,15 +581,28 @@ onBeforeUnmount(cleanup)
   font-weight: 600;
 }
 
+.player-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
 .player {
   width: 100%;
-  max-height: 70vh;
-  border-radius: var(--radius);
+  height: 100%;
+  border-radius: 0;
   background: #000;
+  display: block;
 }
 
 .embed {
-  min-height: 60vh;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   border: none;
 }
 

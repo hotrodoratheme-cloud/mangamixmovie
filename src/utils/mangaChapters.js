@@ -17,11 +17,24 @@ export function formatChapterLabel(chapter) {
   return title || 'Oneshot'
 }
 
+function isVietnameseGroupName(groupName = '') {
+  const name = String(groupName).trim()
+  if (!name) return false
+  return /vi[eệ]t|vietnam|\bvn\b|\[v\]|\(\s*v\s*\)|(?:^|[\s\-–—])v(?:$|[\s\-–—.!])/i.test(name)
+}
+
 function chapterLangScore(chapter) {
-  const lang = chapter.attributes?.translatedLanguage?.[0] || chapter.lang || ''
-  if (lang === 'vi') return 3
+  const lang = (chapter.attributes?.translatedLanguage?.[0] || chapter.lang || '').toLowerCase()
+  if (lang === 'vi') return 4
   if (lang === 'en') return 2
   return 1
+}
+
+function variantScore(variant) {
+  const lang = (variant.lang || '').toLowerCase()
+  let score = chapterLangScore({ lang })
+  if (isVietnameseGroupName(variant.groupName)) score += 3
+  return score
 }
 
 function getScanGroupName(chapter, included = []) {
@@ -41,7 +54,7 @@ function mergeIncluded(items) {
 
 function sortVariants(variants) {
   return [...variants].sort((a, b) => {
-    const diff = chapterLangScore(b) - chapterLangScore(a)
+    const diff = variantScore(b) - variantScore(a)
     if (diff) return diff
     return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
   })

@@ -306,3 +306,8 @@ img {
   align-items: center;
   gap: 8px;
 }
+
+.section-title-icon .app-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}

@@ -153,9 +153,15 @@ function isMangaItem(entry) {
 }
 
 .spotlight-origin {
-  color: var(--text-muted);
+  color: rgba(210, 218, 235, 0.96);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.85);
   font-size: 0.9375rem;
   margin: 0 0 14px;
+}
+
+[data-theme='light'] .spotlight-origin {
+  color: #4b5563;
+  text-shadow: none;
 }
 
 .spotlight-tags {
@@ -166,13 +172,21 @@ function isMangaItem(entry) {
 }
 
 .tag {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(11, 14, 23, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 4px 12px;
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
+  color: rgba(220, 228, 245, 0.92);
+  backdrop-filter: blur(4px);
+}
+
+[data-theme='light'] .tag {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   color: var(--text-muted);
+  backdrop-filter: none;
 }
 
 .tag-new {
@@ -181,7 +195,8 @@ function isMangaItem(entry) {
 }
 
 .spotlight-desc {
-  color: var(--text-muted);
+  color: rgba(198, 208, 228, 0.94);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8);
   font-size: 0.875rem;
   line-height: 1.65;
   margin: 0 0 20px;
@@ -190,6 +205,11 @@ function isMangaItem(entry) {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+[data-theme='light'] .spotlight-desc {
+  color: #5c667a;
+  text-shadow: none;
 }
 
 .spotlight-btn {
@@ -212,15 +232,18 @@ function isMangaItem(entry) {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
+  background: rgba(11, 14, 23, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius);
   padding: 8px;
   transition: border-color 0.15s, background 0.15s;
+  backdrop-filter: blur(6px);
 }
 
 [data-theme='light'] .side-card {
   background: var(--bg-card);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
 }
 
 .side-card:hover {
@@ -266,9 +289,52 @@ function isMangaItem(entry) {
   display: block;
   margin-top: 4px;
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: rgba(190, 200, 220, 0.92);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+[data-theme='light'] .side-info span {
+  color: var(--text-muted);
+}
+
+@media (max-width: 1024px) {
+  .spotlight-inner {
+    min-height: auto;
+    padding-top: 20px;
+    padding-bottom: 24px;
+  }
+
+  .spotlight {
+    min-height: auto;
+  }
+
+  .spotlight-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .side-card {
+    padding: 6px;
+    gap: 8px;
+  }
+
+  .side-card-thumb {
+    width: 48px;
+    height: 64px;
+    flex-basis: 48px;
+  }
+
+  .side-info strong {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .spotlight-side {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
