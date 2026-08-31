@@ -85,7 +85,7 @@ export async function fetchLatestChaptersForMangaIds(axios, mangaIds, options = 
   await runWithConcurrency(unique, async (mangaId) => {
     try {
       const { data } = await axios.get(mangaApi.chaptersBrief(mangaId, 6))
-      const chapters = dedupeChapters(data.data || [])
+      const chapters = dedupeChapters(data.data || [], data.included || [])
         .filter((ch) => !ch.attributes?.externalUrl)
         .filter((ch) => (ch.attributes?.pages ?? 0) > 0)
         .sort((a, b) => {

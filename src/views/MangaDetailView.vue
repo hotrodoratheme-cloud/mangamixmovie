@@ -60,7 +60,10 @@
               @click="readChapter(ch)"
             >
               <span class="ch-title">{{ ch.title }}</span>
-              <span v-if="ch.lang" class="ch-lang">{{ ch.lang.toUpperCase() }}</span>
+              <span class="ch-meta">
+                <span v-if="ch.groupName" class="ch-group">{{ ch.groupName }}</span>
+                <span v-if="ch.lang" class="ch-lang">{{ ch.lang.toUpperCase() }}</span>
+              </span>
             </button>
           </div>
         </section>
@@ -278,6 +281,25 @@ onMounted(loadDetail)
   font-weight: 600;
   line-height: 1.35;
   color: var(--text);
+}
+
+.ch-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ch-group {
+  max-width: 92px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ch-lang {

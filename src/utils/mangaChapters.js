@@ -17,24 +17,50 @@ export function formatChapterLabel(chapter) {
   return title || 'Oneshot'
 }
 
+function isVScanGroup(groupName = '') {
+  const name = String(groupName).trim()
+  if (!name) return false
+  return /^v$/i.test(name) || /^\[v\]$/i.test(name) || /^v[\s\-–—./]/i.test(name)
+}
+
 function isVietnameseGroupName(groupName = '') {
   const name = String(groupName).trim()
   if (!name) return false
-  return /vi[eệ]t|vietnam|\bvn\b|\[v\]|\(\s*v\s*\)|(?:^|[\s\-–—])v(?:$|[\s\-–—.!])/i.test(name)
+  if (isVScanGroup(name)) return true
+  return /vi[eệ]t|vietnam|\bvn\b|\(\s*v\s*\)|(?:^|[\s\-–—])v(?:$|[\s\-–—.!])/i.test(name)
 }
 
 function chapterLangScore(chapter) {
   const lang = (chapter.attributes?.translatedLanguage?.[0] || chapter.lang || '').toLowerCase()
-  if (lang === 'vi') return 4
-  if (lang === 'en') return 2
+  if (lang === 'vi') return 100
+  if (lang === 'en') return 10
   return 1
 }
 
 function variantScore(variant) {
   const lang = (variant.lang || '').toLowerCase()
   let score = chapterLangScore({ lang })
-  if (isVietnameseGroupName(variant.groupName)) score += 3
+  if (isVScanGroup(variant.groupName)) score += 30
+  else if (isVietnameseGroupName(variant.groupName)) score += 10
   return score
+}
+
+function compareVariants(a, b) {
+  const diff = variantScore(b) - variantScore(a)
+  if (diff) return diff
+
+  const groupDiff =
+    Number(isVietnameseGroupName(b.groupName)) - Number(isVietnameseGroupName(a.groupName))
+  if (groupDiff) return groupDiff
+
+  return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+}
+
+function rawChapterScore(chapter, included = []) {
+  return variantScore({
+    lang: chapter.attributes?.translatedLanguage?.[0] || '',
+    groupName: getScanGroupName(chapter, included),
+  })
 }
 
 function getScanGroupName(chapter, included = []) {
@@ -53,15 +79,11 @@ function mergeIncluded(items) {
 }
 
 function sortVariants(variants) {
-  return [...variants].sort((a, b) => {
-    const diff = variantScore(b) - variantScore(a)
-    if (diff) return diff
-    return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
-  })
+  return [...variants].sort(compareVariants)
 }
 
-/** Gộp chapter trùng số, ưu tiên bản Việt rồi mới nhất */
-export function dedupeChapters(chapters) {
+/** Gộp chapter trùng số, ưu tiên tiếng Việt / nhóm V rồi mới nhất */
+export function dedupeChapters(chapters, included = []) {
   const map = new Map()
 
   for (const ch of chapters) {
@@ -72,13 +94,20 @@ export function dedupeChapters(chapters) {
       continue
     }
 
-    const scoreNew = chapterLangScore(ch)
-    const scoreOld = chapterLangScore(existing)
+    const scoreNew = rawChapterScore(ch, included)
+    const scoreOld = rawChapterScore(existing, included)
     if (scoreNew > scoreOld) {
       map.set(key, ch)
       continue
     }
     if (scoreNew === scoreOld) {
+      const groupNew = isVietnameseGroupName(getScanGroupName(ch, included))
+      const groupOld = isVietnameseGroupName(getScanGroupName(existing, included))
+      if (groupNew !== groupOld) {
+        if (groupNew) map.set(key, ch)
+        continue
+      }
+
       const tNew = new Date(ch.attributes?.updatedAt || 0).getTime()
       const tOld = new Date(existing.attributes?.updatedAt || 0).getTime()
       if (tNew > tOld) map.set(key, ch)
@@ -111,6 +140,7 @@ export function sortChaptersDesc(chapters) {
 }
 
 export function mapChapterItem(chapter, variants = []) {
+  const best = variants[0]
   return {
     id: chapter.id,
     number: chapter.attributes?.chapter ?? chapter.number ?? null,
@@ -118,6 +148,7 @@ export function mapChapterItem(chapter, variants = []) {
     title: formatChapterLabel(chapter),
     pages: chapter.attributes?.pages ?? chapter.pages ?? 0,
     lang: chapter.attributes?.translatedLanguage?.[0] || chapter.lang || '',
+    groupName: best?.groupName || '',
     updatedAt: chapter.attributes?.updatedAt ?? chapter.updatedAt,
     variants,
   }
