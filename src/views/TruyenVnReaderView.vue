@@ -472,7 +472,7 @@ onMounted(init)
   padding: 0 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background-color: var(--bg-card);
   color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
