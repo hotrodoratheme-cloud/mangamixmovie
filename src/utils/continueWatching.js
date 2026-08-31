@@ -1,7 +1,6 @@
 import {
+  loadAllHistory,
   localHistory,
-  fetchCloudHistory,
-  mergeHistoryLists,
   getHistoryEntryId,
   buildMovieDetailLink,
 } from '@/services/history'
@@ -58,26 +57,11 @@ function mapContinueRows(rows, type, limit) {
 }
 
 async function getHistoryRows(scope, userId) {
-  const local = localHistory.getAll()
+  const data = await loadAllHistory(userId || null)
 
-  if (userId) {
-    try {
-      const cloud = await fetchCloudHistory(userId)
-      if (scope === 'movie') {
-        return mergeHistoryLists(cloud.movies, local.movies)
-      }
-      if (scope === 'manga_vn') {
-        return mergeHistoryLists(cloud.manga_vn || [], local.manga_vn || [])
-      }
-      return mergeHistoryLists(cloud.manga, local.manga)
-    } catch {
-      /* fallback local bên dưới */
-    }
-  }
-
-  if (scope === 'movie') return local.movies || []
-  if (scope === 'manga_vn') return local.manga_vn || []
-  return local.manga || []
+  if (scope === 'movie') return data.movies
+  if (scope === 'manga_vn') return data.manga_vn
+  return data.manga
 }
 
 /** Chỉ đọc localStorage — dùng cho logic resume nhanh */

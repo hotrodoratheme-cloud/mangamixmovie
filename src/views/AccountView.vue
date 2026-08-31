@@ -248,10 +248,10 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { fetchCloudHistory, localHistory, mergeHistoryLists, buildMovieDetailLink } from '@/services/history'
+import { loadAllHistory, buildMovieDetailLink, onHistoryChanged } from '@/services/history'
 import { useFavorites } from '@/composables/useFavorites'
 import { mergeFavoriteLists } from '@/services/favorites'
 import HistoryMediaCard from '@/components/browse/HistoryMediaCard.vue'
@@ -322,36 +322,18 @@ function openLogin() {
 }
 
 async function loadHistory() {
-  if (!user.value?.id) {
-    movies.value = []
-    manga.value = []
-    mangaVn.value = []
-    historyLoading.value = false
-    return
-  }
-
   historyLoading.value = true
   try {
-    const local = localHistory.getAll()
-    if (user.value?.id) {
-      const cloud = await fetchCloudHistory(user.value.id)
-      movies.value = mergeHistoryLists(cloud.movies, local.movies)
-      manga.value = mergeHistoryLists(cloud.manga, local.manga)
-      mangaVn.value = mergeHistoryLists(cloud.manga_vn || [], local.manga_vn || [])
-    } else {
-      movies.value = local.movies
-      manga.value = local.manga
-      mangaVn.value = local.manga_vn || []
-    }
-  } catch {
-    const local = localHistory.getAll()
-    movies.value = local.movies
-    manga.value = local.manga
-    mangaVn.value = local.manga_vn || []
+    const data = await loadAllHistory(user.value?.id || null)
+    movies.value = data.movies
+    manga.value = data.manga
+    mangaVn.value = data.manga_vn
   } finally {
     historyLoading.value = false
   }
 }
+
+let unsubscribeHistory = null
 
 async function loadFavorites(silent = false) {
   if (!user.value?.id) {
@@ -503,14 +485,25 @@ watch(favoritesRevision, () => {
 })
 
 watch(
-  () => authLoading.value,
-  (isLoading) => {
+  () => [user.value?.id, authLoading.value],
+  ([, isLoading]) => {
     if (isLoading) return
     loadHistory()
     loadFavorites()
   },
   { immediate: true }
 )
+
+onMounted(() => {
+  unsubscribeHistory = onHistoryChanged(() => {
+    if (authLoading.value) return
+    loadHistory()
+  })
+})
+
+onUnmounted(() => {
+  unsubscribeHistory?.()
+})
 </script>
 
 <style scoped>

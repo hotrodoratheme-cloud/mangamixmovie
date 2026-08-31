@@ -3,6 +3,8 @@ import {
   getMovieEpisodeResumeSeconds,
   episodeMatchesHistory,
   buildMovieDetailLink,
+  mergeHistoryLists,
+  loadAllHistory,
 } from './history.js'
 
 describe('history resume helpers', () => {
@@ -67,5 +69,25 @@ describe('history resume helpers', () => {
       path: '/phim/phim-a',
       query: { ep: 'tap-3' },
     })
+  })
+
+  it('mergeHistoryLists giữ cả local và cloud', () => {
+    const merged = mergeHistoryLists(
+      [{ item_id: 'cloud-a', item_name: 'Cloud A', updated_at: '2026-01-02T00:00:00Z' }],
+      [
+        { itemId: 'local-b', itemName: 'Local B', updated_at: '2026-01-03T00:00:00Z' },
+        { itemId: 'cloud-a', itemName: 'Local A newer', episodeName: 'Tập 2', updated_at: '2026-01-04T00:00:00Z' },
+      ],
+    )
+
+    expect(merged).toHaveLength(2)
+    expect(merged.find((row) => row.itemId === 'local-b')?.itemName).toBe('Local B')
+    expect(merged.find((row) => row.itemId === 'cloud-a')?.episodeName).toBe('Tập 2')
+  })
+
+  it('loadAllHistory trả local khi chưa đăng nhập', async () => {
+    const data = await loadAllHistory(null)
+    expect(data.movies).toHaveLength(1)
+    expect(data.movies[0].itemId).toBe('phim-a')
   })
 })

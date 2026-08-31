@@ -61,13 +61,67 @@ function normalizeHistoryRow(item, id = getHistoryEntryId(item)) {
     item_name: item.itemName || item.item_name || '',
     episodeSlug: item.episodeSlug || item.episode_slug || null,
     episode_slug: item.episodeSlug || item.episode_slug || null,
+    episodeName: item.episodeName || item.episode_name || null,
+    episode_name: item.episodeName || item.episode_name || null,
     chapterId: item.chapterId || item.chapter_id || null,
     chapter_id: item.chapterId || item.chapter_id || null,
+    chapterName: item.chapterName || item.chapter_name || null,
+    chapter_name: item.chapterName || item.chapter_name || null,
     progressSeconds: item.progressSeconds ?? item.progress_seconds ?? 0,
     progress_seconds: item.progressSeconds ?? item.progress_seconds ?? 0,
     updatedAt: item.updatedAt || item.updated_at || new Date().toISOString(),
     updated_at: item.updatedAt || item.updated_at || new Date().toISOString(),
   }
+}
+
+function mergeHistoryRow(a, b) {
+  const primary = rowTimestamp(a) >= rowTimestamp(b) ? a : b
+  const secondary = primary === a ? b : a
+
+  return normalizeHistoryRow({
+    ...secondary,
+    ...primary,
+    type: primary.type || secondary.type,
+    poster: primary.poster || secondary.poster || null,
+    itemName:
+      primary.itemName ||
+      primary.item_name ||
+      secondary.itemName ||
+      secondary.item_name ||
+      '',
+    episodeSlug:
+      primary.episodeSlug ||
+      primary.episode_slug ||
+      secondary.episodeSlug ||
+      secondary.episode_slug ||
+      null,
+    episodeName:
+      primary.episodeName ||
+      primary.episode_name ||
+      secondary.episodeName ||
+      secondary.episode_name ||
+      null,
+    chapterId:
+      primary.chapterId ||
+      primary.chapter_id ||
+      secondary.chapterId ||
+      secondary.chapter_id ||
+      null,
+    chapterName:
+      primary.chapterName ||
+      primary.chapter_name ||
+      secondary.chapterName ||
+      secondary.chapter_name ||
+      null,
+    progressSeconds: Math.max(
+      Number(primary.progressSeconds ?? primary.progress_seconds ?? 0) || 0,
+      Number(secondary.progressSeconds ?? secondary.progress_seconds ?? 0) || 0,
+    ),
+  })
+}
+
+export function sortHistoryRows(rows = []) {
+  return [...rows].sort((a, b) => rowTimestamp(b) - rowTimestamp(a))
 }
 
 export function dedupeHistoryRows(rows = []) {
@@ -78,16 +132,138 @@ export function dedupeHistoryRows(rows = []) {
     if (!normalized) continue
 
     const prev = map.get(normalized.itemId)
-    if (!prev || rowTimestamp(normalized) >= rowTimestamp(prev)) {
+    if (!prev) {
       map.set(normalized.itemId, normalized)
+      continue
     }
+
+    map.set(normalized.itemId, mergeHistoryRow(prev, normalized))
   }
 
-  return Array.from(map.values())
+  return sortHistoryRows(Array.from(map.values()))
 }
 
 export function mergeHistoryLists(cloudRows = [], localRows = []) {
   return dedupeHistoryRows([...(localRows || []), ...(cloudRows || [])])
+}
+
+function persistMergedHistory(merged) {
+  writeStore({
+    movies: sortHistoryRows(merged.movies).slice(0, 50),
+    manga: sortHistoryRows(merged.manga).slice(0, 50),
+    manga_vn: sortHistoryRows(merged.manga_vn).slice(0, 50),
+  })
+}
+
+async function fetchCloudHistoryByType(userId, type, limit = 50) {
+  const { supabase } = await import('@/config/supabase')
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('watch_history')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('type', type)
+    .order('updated_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return dedupeHistoryRows(data || [])
+}
+
+async function syncMissingLocalHistoryToCloud(userId, local, cloud) {
+  const cloudIds = {
+    movie: new Set((cloud.movies || []).map(getHistoryEntryId).filter(Boolean)),
+    manga: new Set((cloud.manga || []).map(getHistoryEntryId).filter(Boolean)),
+    manga_vn: new Set((cloud.manga_vn || []).map(getHistoryEntryId).filter(Boolean)),
+  }
+
+  const uploads = []
+
+  for (const item of local.movies || []) {
+    const itemId = getHistoryEntryId(item)
+    if (!itemId || cloudIds.movie.has(itemId)) continue
+    uploads.push(
+      saveCloudHistory(userId, {
+        type: 'movie',
+        itemId,
+        itemName: item.itemName || item.item_name,
+        poster: item.poster,
+        episodeSlug: item.episodeSlug || item.episode_slug,
+        progressSeconds: item.progressSeconds ?? item.progress_seconds ?? 0,
+      })
+    )
+  }
+
+  for (const item of local.manga || []) {
+    const itemId = getHistoryEntryId(item)
+    if (!itemId || cloudIds.manga.has(itemId)) continue
+    uploads.push(
+      saveCloudHistory(userId, {
+        type: 'manga',
+        itemId,
+        itemName: item.itemName || item.item_name,
+        poster: item.poster,
+        chapterId: item.chapterId || item.chapter_id,
+        progressSeconds: 0,
+      })
+    )
+  }
+
+  for (const item of local.manga_vn || []) {
+    const itemId = getHistoryEntryId(item)
+    if (!itemId || cloudIds.manga_vn.has(itemId)) continue
+    uploads.push(
+      saveCloudHistory(userId, {
+        type: 'manga_vn',
+        itemId,
+        itemName: item.itemName || item.item_name,
+        poster: item.poster,
+        chapterId: item.chapterId || item.chapter_id,
+        progressSeconds: 0,
+      }).catch(() => {})
+    )
+  }
+
+  if (uploads.length) {
+    await Promise.allSettled(uploads)
+  }
+}
+
+export async function loadAllHistory(userId = null) {
+  const local = localHistory.getAll()
+  const localSnapshot = {
+    movies: sortHistoryRows(local.movies || []),
+    manga: sortHistoryRows(local.manga || []),
+    manga_vn: sortHistoryRows(local.manga_vn || []),
+  }
+
+  if (!userId) {
+    return localSnapshot
+  }
+
+  try {
+    const [movies, manga, mangaVnRows] = await Promise.all([
+      fetchCloudHistoryByType(userId, 'movie'),
+      fetchCloudHistoryByType(userId, 'manga'),
+      fetchCloudHistoryByType(userId, 'manga_vn').catch(() => []),
+    ])
+
+    const cloud = { movies, manga, manga_vn: mangaVnRows }
+    const merged = {
+      movies: mergeHistoryLists(cloud.movies, localSnapshot.movies),
+      manga: mergeHistoryLists(cloud.manga, localSnapshot.manga),
+      manga_vn: mergeHistoryLists(cloud.manga_vn, localSnapshot.manga_vn),
+    }
+
+    persistMergedHistory(merged)
+    void syncMissingLocalHistoryToCloud(userId, localSnapshot, cloud)
+
+    return merged
+  } catch (err) {
+    console.warn('Cloud history fetch failed:', err.message)
+    return localSnapshot
+  }
 }
 
 function readStore() {
@@ -216,21 +392,12 @@ export function buildMovieDetailLink(item) {
 }
 
 export async function fetchCloudHistory(userId) {
-  const { supabase } = await import('@/config/supabase')
-  if (!supabase) return { movies: [], manga: [] }
+  const [movies, manga, manga_vn] = await Promise.all([
+    fetchCloudHistoryByType(userId, 'movie'),
+    fetchCloudHistoryByType(userId, 'manga'),
+    fetchCloudHistoryByType(userId, 'manga_vn').catch(() => []),
+  ])
 
-  const { data, error } = await supabase
-    .from('watch_history')
-    .select('*')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(50)
-
-  if (error) throw error
-
-  const movies = dedupeHistoryRows(data.filter((i) => i.type === 'movie'))
-  const manga = dedupeHistoryRows(data.filter((i) => i.type === 'manga'))
-  const manga_vn = dedupeHistoryRows(data.filter((i) => i.type === 'manga_vn'))
   return { movies, manga, manga_vn }
 }
 

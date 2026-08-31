@@ -154,8 +154,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { localHistory, fetchCloudHistory, mergeHistoryLists, removeHistory, clearHistory, buildMovieDetailLink } from '@/services/history'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { loadAllHistory, removeHistory, clearHistory, buildMovieDetailLink, onHistoryChanged } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
 import HistoryMediaCard from '@/components/browse/HistoryMediaCard.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
@@ -239,26 +239,33 @@ function mangaVnLink(item) {
 async function loadHistory() {
   loading.value = true
   try {
-    const local = localHistory.getAll()
-    if (user.value?.id) {
-      const cloud = await fetchCloudHistory(user.value.id)
-      movies.value = mergeHistoryLists(cloud.movies, local.movies)
-      manga.value = mergeHistoryLists(cloud.manga, local.manga)
-      mangaVn.value = mergeHistoryLists(cloud.manga_vn || [], local.manga_vn || [])
-    } else {
-      movies.value = local.movies
-      manga.value = local.manga
-      mangaVn.value = local.manga_vn || []
-    }
-  } catch {
-    const local = localHistory.getAll()
-    movies.value = local.movies
-    manga.value = local.manga
-    mangaVn.value = local.manga_vn || []
+    const data = await loadAllHistory(user.value?.id || null)
+    movies.value = data.movies
+    manga.value = data.manga
+    mangaVn.value = data.manga_vn
   } finally {
     loading.value = false
   }
 }
+
+let unsubscribeHistory = null
+
+watch(
+  () => [user.value?.id, authLoading.value],
+  ([, isLoading]) => {
+    if (isLoading) return
+    loadHistory()
+  },
+  { immediate: true }
+)
+
+onMounted(() => {
+  unsubscribeHistory = onHistoryChanged(loadHistory)
+})
+
+onUnmounted(() => {
+  unsubscribeHistory?.()
+})
 
 async function removeItem(type, item) {
   const itemId = getItemId(item)
@@ -324,12 +331,6 @@ async function performClearAll() {
   manga.value = []
   mangaVn.value = []
 }
-
-watch(user, () => {
-  if (!authLoading.value) loadHistory()
-})
-
-onMounted(loadHistory)
 </script>
 
 <style scoped>
