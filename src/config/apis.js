@@ -17,6 +17,7 @@ export const movieApi = {
   search: (keyword, page = 1) =>
     `${MOVIE_API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&page=${page}`,
   detail: (slug) => `${MOVIE_API_BASE}/phim/${slug}`,
+  peoples: (slug) => `${MOVIE_API_BASE}/v1/api/phim/${slug}/peoples`,
   genres: () => `${MOVIE_API_BASE}/v1/api/the-loai`,
   countries: () => `${MOVIE_API_BASE}/v1/api/quoc-gia`,
   genreList: (slug, page = 1, filters = {}) =>

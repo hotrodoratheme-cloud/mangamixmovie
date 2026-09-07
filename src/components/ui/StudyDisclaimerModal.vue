@@ -126,7 +126,7 @@ onUnmounted(() => {
 
 .disclaimer-dialog {
   width: 100%;
-  max-width: 440px;
+  max-width: 450px;
   padding: 28px 24px 24px;
   border-radius: 16px;
   border: 1px solid var(--border);

@@ -5,6 +5,7 @@ import { proxyHlsRequest } from './lib/hlsProxy.js'
 import { proxyMangaImageRequest } from './lib/mangaImageProxy.js'
 import { handleMangadexApiRequest } from './lib/mangadexApiProxy.js'
 import { handleOtruyenChapterRequest } from './lib/otruyenChapterHandler.js'
+import { handleTmdbRequest } from './lib/tmdbProxy.js'
 
 async function handleApiProxy(req, res, pathname, proxyFn) {
   const urlObj = new URL(req.url, 'http://localhost')
@@ -59,6 +60,9 @@ export default defineConfig({
           }
           if (req.url?.startsWith('/api/otruyen-chapter')) {
             return handleOtruyenChapterRequest(req, res)
+          }
+          if (req.url?.startsWith('/api/tmdb')) {
+            return handleTmdbRequest(req, res)
           }
           next()
         })

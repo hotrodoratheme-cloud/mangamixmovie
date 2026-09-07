@@ -21,6 +21,12 @@ const routes = [
         component: () => import('@/views/MovieCategoryView.vue'),
       },
       {
+        path: 'phim/dien-vien/:tmdbId',
+        name: 'actor-filmography',
+        meta: { backTo: '/phim', title: 'Diễn viên' },
+        component: () => import('@/views/ActorFilmographyView.vue'),
+      },
+      {
         path: 'phim/:slug',
         name: 'movie-detail',
         meta: { backTo: '/phim' },

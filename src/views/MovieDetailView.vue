@@ -19,6 +19,18 @@
               <AppIcon name="play" :size="16" filled />
               {{ isPlaying ? 'Đang phát' : 'Phát ngay' }}
             </button>
+            <div v-if="showAudioToggle" class="audio-toggle" role="group" aria-label="Phiên bản phim">
+              <button
+                v-for="option in audioOptions"
+                :key="option.index"
+                type="button"
+                class="audio-toggle-btn"
+                :class="{ active: selectedServerIndex === option.index }"
+                @click="selectAudioServer(option.index)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
             <FavoriteButton
               type="movie"
               :item-id="String(route.params.slug)"
@@ -36,6 +48,18 @@
             Đang phát: {{ currentEpisode.name }}
             <span v-if="resumeLabel" class="resume-label">· {{ resumeLabel }}</span>
           </p>
+          <div v-if="showAudioToggle" class="audio-toggle audio-toggle--player" role="group" aria-label="Phiên bản phim">
+            <button
+              v-for="option in audioOptions"
+              :key="`player-${option.index}`"
+              type="button"
+              class="audio-toggle-btn"
+              :class="{ active: selectedServerIndex === option.index }"
+              @click="selectAudioServer(option.index)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
           <div class="player-frame">
             <video
               v-if="playerMode === 'hls'"
@@ -58,22 +82,37 @@
       </section>
 
       <div class="container detail-body">
+        <section v-if="cast.length" class="info-block">
+          <h2>Diễn viên</h2>
+          <div class="cast-row">
+            <ActorCard
+              v-for="(person, index) in cast"
+              :key="person.id"
+              :id="person.id"
+              :name="person.name"
+              :character="person.character"
+              :photo="person.photo"
+              :eager="index < 6"
+            />
+          </div>
+        </section>
+
         <section v-if="movie.content" class="info-block">
           <h2>Nội dung</h2>
           <div class="description" v-html="movie.content"></div>
         </section>
 
-        <section v-if="servers.length > 1" class="info-block">
+        <section v-if="legacyServers.length" class="info-block">
           <h2>Server phát</h2>
           <div class="chips">
             <button
-              v-for="(s, i) in servers"
-              :key="s.server_name"
+              v-for="s in legacyServers"
+              :key="s.index"
               class="chip"
-              :class="{ active: selectedServerIndex === i }"
-              @click="selectServer(i)"
+              :class="{ active: selectedServerIndex === s.index }"
+              @click="selectAudioServer(s.index)"
             >
-              {{ s.server_name }}
+              {{ s.serverName }}
             </button>
           </div>
         </section>
@@ -112,6 +151,14 @@ import { usePageMeta } from '@/composables/usePageMeta'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import FavoriteButton from '@/components/favorites/FavoriteButton.vue'
+import ActorCard from '@/components/movie/ActorCard.vue'
+import {
+  buildAudioOptions,
+  hasMultipleAudioVersions,
+  defaultAudioServerIndex,
+  findEpisodeBySlug,
+} from '@/utils/movieAudio'
+import { fetchMovieCast } from '@/utils/moviePeople'
 
 import { useNavBack } from '@/composables/useNavBack'
 
@@ -122,6 +169,7 @@ const { preserveQuery } = useNavBack('/phim')
 
 const movie = ref(null)
 const servers = ref([])
+const cast = ref([])
 const selectedServerIndex = ref(0)
 const episodes = ref([])
 const currentEpisode = ref(null)
@@ -140,6 +188,12 @@ let fetchSeq = 0
 let playSeq = 0
 
 const isPlaying = computed(() => !!currentEpisode.value)
+const audioOptions = computed(() => buildAudioOptions(servers.value))
+const showAudioToggle = computed(() => hasMultipleAudioVersions(servers.value))
+const legacyServers = computed(() => {
+  if (showAudioToggle.value || servers.value.length <= 1) return []
+  return audioOptions.value
+})
 const pageTitle = computed(() => movie.value?.name || '')
 usePageMeta(pageTitle)
 
@@ -200,7 +254,7 @@ function applyFromQuery() {
   const { ep, server } = route.query
   const idx = server !== undefined ? Number(server) : selectedServerIndex.value
 
-  if (!Number.isNaN(idx) && idx !== selectedServerIndex.value && servers.value[idx]) {
+  if (!Number.isNaN(idx) && servers.value[idx]) {
     selectedServerIndex.value = idx
     episodes.value = servers.value[idx]?.server_data || []
   }
@@ -214,14 +268,22 @@ async function fetchMovie() {
   const seq = ++fetchSeq
   loading.value = true
   error.value = ''
+  cast.value = []
 
   try {
-    const { data } = await axios.get(movieApi.detail(route.params.slug), { timeout: 15000 })
+    const [detailRes, castList] = await Promise.all([
+      axios.get(movieApi.detail(route.params.slug), { timeout: 15000 }),
+      fetchMovieCast(axios, route.params.slug).catch(() => []),
+    ])
+
+    const { data } = detailRes
     if (seq !== fetchSeq) return
     if (!data.movie) {
       error.value = 'Không tìm thấy phim.'
       return
     }
+
+    cast.value = castList
 
     movie.value = {
       name: data.movie.name,
@@ -235,8 +297,8 @@ async function fetchMovie() {
       ),
     }
     servers.value = data.episodes || []
-    selectedServerIndex.value = 0
-    episodes.value = servers.value[0]?.server_data || []
+    selectedServerIndex.value = defaultAudioServerIndex(servers.value)
+    episodes.value = servers.value[selectedServerIndex.value]?.server_data || []
     applyFromQuery()
   } catch (err) {
     if (seq !== fetchSeq) return
@@ -246,10 +308,22 @@ async function fetchMovie() {
   }
 }
 
-function selectServer(index) {
-  if (selectedServerIndex.value === index) return
+function selectAudioServer(index) {
+  if (selectedServerIndex.value === index || !servers.value[index]) return
+
+  const previousSlug = currentEpisode.value?.slug
   selectedServerIndex.value = index
   episodes.value = servers.value[index]?.server_data || []
+
+  if (previousSlug) {
+    const matched = findEpisodeBySlug(servers.value, index, previousSlug)
+    if (matched) {
+      selectEpisode(matched, true)
+      updateRoute({ ep: matched.slug, server: String(index) })
+      return
+    }
+  }
+
   resetPlayer()
   updateRoute({ server: String(index) })
 }
@@ -529,6 +603,50 @@ onBeforeUnmount(cleanup)
   background: rgba(255, 45, 85, 0.78);
   border-color: rgba(255, 255, 255, 0.35);
   color: #fff;
+}
+
+.audio-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.audio-toggle-btn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.audio-toggle-btn.active {
+  background: var(--accent);
+  color: #1a1200;
+}
+
+.audio-toggle--player {
+  margin-bottom: 12px;
+  border-color: var(--border);
+  background: var(--bg-card);
+}
+
+.audio-toggle--player .audio-toggle-btn {
+  color: var(--text);
+}
+
+.cast-row {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
 }
 
 .detail-body {
