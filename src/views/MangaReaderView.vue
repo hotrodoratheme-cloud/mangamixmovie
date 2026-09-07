@@ -113,7 +113,9 @@ import {
   fetchChapterImages,
   findChapterIndexById,
   resolveChapterId,
+  pickChapterVariant,
 } from '@/utils/mangaChapters'
+import { getReaderPreference, setReaderPreference } from '@/services/readerPreferences'
 import { fetchMangaTags } from '@/utils/mangaMapper'
 import { buildMangaTagIndex, mangaGenrePath } from '@/utils/mangaTags'
 import { saveHistory } from '@/services/history'
@@ -158,6 +160,16 @@ function genreTo(genre) {
 
 const currentVariants = computed(() => chapters.value[currentIndex.value]?.variants || [])
 
+function preferredVariantId(row, explicitChapterId = null) {
+  const prefs = getReaderPreference(route.params.id, 'manga')
+  return (
+    pickChapterVariant(row?.variants || [], {
+      preferredChapterId: explicitChapterId || undefined,
+      preferredGroupName: explicitChapterId ? undefined : prefs?.groupName,
+    }) || row?.id
+  )
+}
+
 function goBackToDetail() {
   router.push({
     path: `/truyen/${route.params.id}`,
@@ -179,6 +191,13 @@ function updateRoute(chapterId) {
 
 function recordHistory(chapterRow, chapterId) {
   const variant = chapterRow.variants?.find((v) => v.id === chapterId)
+  if (variant?.groupName) {
+    setReaderPreference(route.params.id, 'manga', {
+      groupName: variant.groupName,
+      chapterId,
+    })
+  }
+
   saveHistory(user.value?.id, {
     type: 'manga',
     itemId: route.params.id,
@@ -227,7 +246,7 @@ async function loadChapter(chapterId, index, updateRouteFlag = true) {
 
     const nextRow = chapters.value[index + 1]
     if (nextRow) {
-      prefetchMangaChapter(axios, nextRow.variants?.[0]?.id || nextRow.id)
+      prefetchMangaChapter(axios, preferredVariantId(nextRow))
     }
   } catch (err) {
     console.error('Chapter load error:', err)
@@ -244,21 +263,21 @@ function onPickServer(e) {
 function onPickChapter(e) {
   const idx = Number(e.target.value)
   if (Number.isNaN(idx) || idx === currentIndex.value) return
-  const preferred = chapters.value[idx]?.variants?.[0]?.id
-  loadChapter(preferred || chapters.value[idx].id, idx)
+  const row = chapters.value[idx]
+  loadChapter(preferredVariantId(row), idx)
 }
 
 function prevChapter() {
   if (currentIndex.value > 0) {
     const prev = chapters.value[currentIndex.value - 1]
-    loadChapter(prev.variants?.[0]?.id || prev.id, currentIndex.value - 1)
+    loadChapter(preferredVariantId(prev), currentIndex.value - 1)
   }
 }
 
 function nextChapter() {
   if (currentIndex.value < chapters.value.length - 1) {
     const next = chapters.value[currentIndex.value + 1]
-    loadChapter(next.variants?.[0]?.id || next.id, currentIndex.value + 1)
+    loadChapter(preferredVariantId(next), currentIndex.value + 1)
   }
 }
 

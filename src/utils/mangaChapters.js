@@ -297,3 +297,26 @@ export function resolveChapterId(catalog, chapterIndex, chapterId) {
   if (chapterId && row.variants?.some((v) => v.id === chapterId)) return chapterId
   return row.id
 }
+
+/** Chọn variant theo ID đã biết hoặc nhóm dịch ưa thích, fallback scoring VI/V */
+export function pickChapterVariant(variants = [], options = {}) {
+  if (!variants.length) return null
+
+  const { preferredChapterId, preferredGroupName } = options
+
+  if (preferredChapterId) {
+    const byId = variants.find((v) => v.id === preferredChapterId)
+    if (byId) return byId.id
+  }
+
+  if (preferredGroupName) {
+    const normalized = String(preferredGroupName).trim().toLowerCase()
+    const byGroup = variants.filter((v) => {
+      const name = String(v.groupName || '').trim().toLowerCase()
+      return name === normalized || name.includes(normalized)
+    })
+    if (byGroup.length) return sortVariants(byGroup)[0].id
+  }
+
+  return sortVariants(variants)[0]?.id || null
+}

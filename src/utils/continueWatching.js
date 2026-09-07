@@ -56,6 +56,27 @@ function mapContinueRows(rows, type, limit) {
     .filter(Boolean)
 }
 
+const KIND_LABELS = {
+  movie: 'Phim',
+  manga: 'MangaDex',
+  manga_vn: 'Truyện VN',
+}
+
+function entryTimestamp(entry) {
+  const value = entry?.updatedAt || entry?.updated_at
+  const ts = value ? new Date(value).getTime() : 0
+  return Number.isNaN(ts) ? 0 : ts
+}
+
+function enrichContinueItem(item, type) {
+  if (!item) return null
+  return {
+    ...item,
+    kind: type,
+    kindLabel: KIND_LABELS[type] || type,
+  }
+}
+
 async function getHistoryRows(scope, userId) {
   const data = await loadAllHistory(userId || null)
 
@@ -77,4 +98,20 @@ export async function loadContinueItems(scope, limit = 8, userId = null) {
   const rows = await getHistoryRows(scope, userId)
   const type = scope === 'movie' ? 'movie' : scope === 'manga_vn' ? 'manga_vn' : 'manga'
   return mapContinueRows(rows, type, limit)
+}
+
+/** Gom phim + truyện, sort theo thời gian xem gần nhất */
+export async function loadMixedContinueItems(limit = 24, userId = null) {
+  const data = await loadAllHistory(userId || null)
+  const merged = [
+    ...(data.movies || []).map((entry) => ({ entry, type: 'movie' })),
+    ...(data.manga || []).map((entry) => ({ entry, type: 'manga' })),
+    ...(data.manga_vn || []).map((entry) => ({ entry, type: 'manga_vn' })),
+  ]
+
+  return merged
+    .sort((a, b) => entryTimestamp(b.entry) - entryTimestamp(a.entry))
+    .slice(0, limit)
+    .map(({ entry, type }) => enrichContinueItem(toContinueItem(entry, type), type))
+    .filter(Boolean)
 }

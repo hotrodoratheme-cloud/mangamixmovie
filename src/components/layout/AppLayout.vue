@@ -106,6 +106,7 @@
         <router-link to="/truyen-vn" @click="menuOpen = false">Truyện VN</router-link>
         <router-link to="/truyen" @click="menuOpen = false">Truyện</router-link>
         <router-link to="/lich-su" @click="menuOpen = false">Lịch sử</router-link>
+        <router-link to="/tiep-tuc" @click="menuOpen = false">Tiếp tục</router-link>
       </nav>
     </header>
 

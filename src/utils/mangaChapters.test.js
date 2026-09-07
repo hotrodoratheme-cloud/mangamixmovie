@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildChapterCatalog, dedupeChapters } from './mangaChapters.js'
+import { buildChapterCatalog, dedupeChapters, pickChapterVariant } from './mangaChapters.js'
 
 function makeChapter({ id, chapter, lang, groupId, groupName, updatedAt }) {
   return {
@@ -68,5 +68,15 @@ describe('mangaChapters translation priority', () => {
     const deduped = dedupeChapters(raw, included)
     expect(deduped).toHaveLength(1)
     expect(deduped[0].id).toBe('en-v')
+  })
+
+  it('pickChapterVariant ưu tiên nhóm dịch đã lưu', () => {
+    const variants = [
+      { id: 'a', lang: 'en', groupName: 'Official', updatedAt: '2026-02-01T00:00:00Z' },
+      { id: 'b', lang: 'en', groupName: 'V', updatedAt: '2026-01-01T00:00:00Z' },
+    ]
+
+    expect(pickChapterVariant(variants, { preferredGroupName: 'V' })).toBe('b')
+    expect(pickChapterVariant(variants, { preferredChapterId: 'a' })).toBe('a')
   })
 })

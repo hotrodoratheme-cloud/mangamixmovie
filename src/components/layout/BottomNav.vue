@@ -62,6 +62,7 @@ const navItems = [
   { to: '/phim', label: 'Phim', icon: 'film', prefix: '/phim' },
   { to: '/truyen-vn', label: 'Truyện VN', icon: 'book', prefix: '/truyen-vn' },
   { to: '/truyen', label: 'Truyện', icon: 'books', prefix: '/truyen' },
+  { to: '/tiep-tuc', label: 'Tiếp tục', icon: 'undo', prefix: '/tiep-tuc' },
 ]
 
 const visible = computed(() => {
@@ -120,7 +121,7 @@ function onAccountClick() {
     bottom: 0;
     z-index: 90;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 2px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: rgba(11, 14, 23, 0.96);

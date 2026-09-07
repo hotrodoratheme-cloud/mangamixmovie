@@ -87,6 +87,27 @@ export function findOtruyenChapterIndex(catalog, chapterId) {
   return idx >= 0 ? idx : 0
 }
 
+export function pickOtruyenVariant(variants = [], options = {}) {
+  if (!variants.length) return null
+
+  const { preferredChapterId, preferredServerName } = options
+
+  if (preferredChapterId) {
+    const byId = variants.find((v) => v.id === preferredChapterId)
+    if (byId) return byId.id
+  }
+
+  if (preferredServerName) {
+    const normalized = String(preferredServerName).trim().toLowerCase()
+    const byServer = variants.find(
+      (v) => String(v.serverName || '').trim().toLowerCase() === normalized
+    )
+    if (byServer) return byServer.id
+  }
+
+  return variants[0]?.id || null
+}
+
 export function resolveOtruyenChapter(catalog, chapterIndex, chapterId) {
   const row = catalog[chapterIndex]
   if (!row) return { id: chapterId, apiUrl: '' }

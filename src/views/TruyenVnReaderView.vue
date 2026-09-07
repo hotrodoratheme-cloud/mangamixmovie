@@ -117,7 +117,9 @@ import {
   fetchOtruyenChapterImages,
   findOtruyenChapterIndex,
   resolveOtruyenChapter,
+  pickOtruyenVariant,
 } from '@/utils/otruyenChapters'
+import { getReaderPreference, setReaderPreference } from '@/services/readerPreferences'
 import { saveHistory } from '@/services/history'
 import { useAuth } from '@/composables/useAuth'
 import { useNavBack } from '@/composables/useNavBack'
@@ -157,6 +159,16 @@ useReaderKeyboard({
 
 const currentVariants = computed(() => chapters.value[currentIndex.value]?.variants || [])
 
+function preferredVariantId(row, explicitChapterId = null) {
+  const prefs = getReaderPreference(route.params.slug, 'manga_vn')
+  return (
+    pickOtruyenVariant(row?.variants || [], {
+      preferredChapterId: explicitChapterId || undefined,
+      preferredServerName: explicitChapterId ? undefined : prefs?.serverName,
+    }) || row?.id
+  )
+}
+
 function genreTo(genre) {
   return `/truyen-vn/the-loai/${genre.slug || genre.id}`
 }
@@ -181,6 +193,13 @@ function updateRoute(chapterId) {
 }
 
 function recordHistory(chapterRow, chapterMeta) {
+  if (chapterMeta.serverName) {
+    setReaderPreference(route.params.slug, 'manga_vn', {
+      serverName: chapterMeta.serverName,
+      chapterId: chapterMeta.id,
+    })
+  }
+
   saveHistory(user.value?.id, {
     type: 'manga_vn',
     itemId: route.params.slug,
@@ -256,23 +275,21 @@ function onPickServer(e) {
 function onPickChapter(e) {
   const idx = Number(e.target.value)
   if (Number.isNaN(idx) || idx === currentIndex.value) return
-  const preferred = chapters.value[idx]?.variants?.[0]?.id || chapters.value[idx]?.id
-  loadChapter(preferred, idx)
+  const row = chapters.value[idx]
+  loadChapter(preferredVariantId(row), idx)
 }
 
 function prevChapter() {
   if (currentIndex.value > 0) {
     const prev = chapters.value[currentIndex.value - 1]
-    const preferred = prev.variants?.[0]?.id || prev.id
-    loadChapter(preferred, currentIndex.value - 1)
+    loadChapter(preferredVariantId(prev), currentIndex.value - 1)
   }
 }
 
 function nextChapter() {
   if (currentIndex.value < chapters.value.length - 1) {
     const next = chapters.value[currentIndex.value + 1]
-    const preferred = next.variants?.[0]?.id || next.id
-    loadChapter(preferred, currentIndex.value + 1)
+    loadChapter(preferredVariantId(next), currentIndex.value + 1)
   }
 }
 

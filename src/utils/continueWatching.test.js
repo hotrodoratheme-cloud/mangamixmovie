@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
-import { getContinueItems, loadContinueItems } from './continueWatching.js'
+import { getContinueItems, loadContinueItems, loadMixedContinueItems } from './continueWatching.js'
 
 describe('continueWatching', () => {
   beforeEach(() => {
@@ -13,6 +13,7 @@ describe('continueWatching', () => {
               poster: 'https://img.test/a.jpg',
               episodeSlug: 'tap-1',
               episodeName: 'Tập 1',
+              updated_at: '2026-01-03T00:00:00Z',
             },
           ],
           manga: [
@@ -22,6 +23,7 @@ describe('continueWatching', () => {
               poster: 'https://img.test/b.jpg',
               chapterId: 'ch-1',
               chapterName: 'Ch. 1',
+              updated_at: '2026-01-05T00:00:00Z',
             },
           ],
           manga_vn: [
@@ -31,6 +33,7 @@ describe('continueWatching', () => {
               poster: 'https://img.test/vn.jpg',
               chapterId: 'ch-vn-2',
               chapterName: 'Ch. 2',
+              updated_at: '2026-01-04T00:00:00Z',
             },
           ],
         }),
@@ -89,5 +92,14 @@ describe('continueWatching', () => {
       JSON.stringify({ movies: [], manga: [], manga_vn: [] })
     )
     expect(await loadContinueItems('movie', 5, null)).toEqual([])
+  })
+
+  it('loadMixedContinueItems sort theo thời gian gần nhất', async () => {
+    const items = await loadMixedContinueItems(10, null)
+    expect(items).toHaveLength(3)
+    expect(items[0].title).toBe('Truyện B')
+    expect(items[0].kind).toBe('manga')
+    expect(items[1].title).toBe('Truyện VN')
+    expect(items[2].title).toBe('Phim A')
   })
 })

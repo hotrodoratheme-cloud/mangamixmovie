@@ -99,6 +99,12 @@ const routes = [
         component: () => import('@/views/HistoryView.vue'),
       },
       {
+        path: 'tiep-tuc',
+        name: 'continue',
+        meta: { title: 'Tiếp tục' },
+        component: () => import('@/views/ContinueView.vue'),
+      },
+      {
         path: 'tai-khoan',
         name: 'account',
         meta: { title: 'Tài khoản' },
