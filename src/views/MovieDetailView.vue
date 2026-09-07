@@ -19,18 +19,6 @@
               <AppIcon name="play" :size="16" filled />
               {{ isPlaying ? 'Đang phát' : 'Phát ngay' }}
             </button>
-            <div v-if="showAudioToggle" class="audio-toggle" role="group" aria-label="Phiên bản phim">
-              <button
-                v-for="option in audioOptions"
-                :key="option.index"
-                type="button"
-                class="audio-toggle-btn"
-                :class="{ active: selectedServerIndex === option.index }"
-                @click="selectAudioServer(option.index)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
             <FavoriteButton
               type="movie"
               :item-id="String(route.params.slug)"
@@ -159,6 +147,7 @@ import {
   findEpisodeBySlug,
 } from '@/utils/movieAudio'
 import { fetchMovieCast } from '@/utils/moviePeople'
+import { indexMovieForCast } from '@/services/actorIndex'
 
 import { useNavBack } from '@/composables/useNavBack'
 
@@ -296,6 +285,15 @@ async function fetchMovie() {
         data.movie.thumb_url || data.movie.poster_url
       ),
     }
+    indexMovieForCast(
+      castList.map((person) => person.id),
+      {
+        slug: route.params.slug,
+        name: data.movie.name,
+        poster: movie.value.poster,
+        year: data.movie.year,
+      }
+    )
     servers.value = data.episodes || []
     selectedServerIndex.value = defaultAudioServerIndex(servers.value)
     episodes.value = servers.value[selectedServerIndex.value]?.server_data || []

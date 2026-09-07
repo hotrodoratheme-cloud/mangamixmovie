@@ -6,13 +6,28 @@ function tmdbUrl(path, params = {}) {
 }
 
 export async function fetchTmdbPerson(axios, personId) {
-  const { data } = await axios.get(
-    tmdbUrl(`/person/${personId}`, {
-      append_to_response: 'combined_credits,images',
-    }),
-    { timeout: 15000 }
-  )
-  return data
+  try {
+    const { data } = await axios.get(
+      tmdbUrl(`/person/${personId}`, {
+        append_to_response: 'combined_credits,images',
+      }),
+      { timeout: 15000 }
+    )
+    return data
+  } catch (err) {
+    const apiKey = import.meta.env.VITE_TMDB_API_KEY
+    if (!apiKey) throw err
+
+    const { data } = await axios.get(`https://api.themoviedb.org/3/person/${personId}`, {
+      params: {
+        api_key: apiKey,
+        language: 'vi-VN',
+        append_to_response: 'combined_credits,images',
+      },
+      timeout: 15000,
+    })
+    return data
+  }
 }
 
 export function getTmdbProfileUrl(profilePath, size = 'w185') {

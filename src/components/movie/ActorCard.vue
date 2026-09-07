@@ -28,7 +28,10 @@ const props = defineProps({
 
 const actorLink = computed(() => ({
   path: `/phim/dien-vien/${props.id}`,
-  query: props.name ? { name: props.name } : undefined,
+  query: {
+    ...(props.name ? { name: props.name } : {}),
+    ...(props.photo ? { photo: props.photo } : {}),
+  },
 }))
 </script>
 

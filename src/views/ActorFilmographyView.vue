@@ -1,7 +1,6 @@
 <template>
   <div class="page actor-page">
     <LoadingSkeleton v-if="loading" variant="hero" :count="1" />
-    <div v-else-if="error" class="error-text">{{ error }}</div>
 
     <template v-else>
       <section class="actor-hero">
@@ -25,14 +24,21 @@
       </section>
 
       <div class="container actor-body">
+        <p v-if="notice" class="notice">{{ notice }}</p>
+
         <section class="info-block">
           <h2>Phim &amp; series</h2>
-          <div v-if="!credits.length" class="empty-state">Chưa có dữ liệu filmography.</div>
+          <div v-if="!credits.length" class="empty-state">
+            Chưa có phim nào được ghi nhận cho diễn viên này.
+            <span v-if="!hasTmdbKey">
+              Thêm <code>TMDB_API_KEY</code> (server) hoặc <code>VITE_TMDB_API_KEY</code> (client) để hiển thị filmography đầy đủ.
+            </span>
+          </div>
           <div v-else class="credit-grid">
             <component
               :is="credit.to ? 'router-link' : 'div'"
               v-for="credit in credits"
-              :key="`${credit.mediaType}-${credit.id}`"
+              :key="credit.key"
               :to="credit.to"
               class="credit-card"
               :class="{ 'credit-card--disabled': !credit.to }"
@@ -78,20 +84,27 @@ import {
   buildPosterUrl,
 } from '@/utils/tmdb'
 import { findMovieSlugByTitle } from '@/utils/moviePeople'
+import { getIndexedMoviesForActor } from '@/services/actorIndex'
 
 const route = useRoute()
 const loading = ref(true)
-const error = ref('')
+const notice = ref('')
 const person = ref(null)
 const credits = ref([])
+
+const hasTmdbKey = Boolean(
+  import.meta.env.VITE_TMDB_API_KEY || import.meta.env.TMDB_API_KEY
+)
 
 const personName = computed(
   () => person.value?.name || route.query.name || 'Diễn viên'
 )
 
-const profilePhoto = computed(() =>
-  getTmdbProfileUrl(person.value?.profile_path, 'w342')
-)
+const profilePhoto = computed(() => {
+  const fromTmdb = getTmdbProfileUrl(person.value?.profile_path, 'w342')
+  if (fromTmdb) return fromTmdb
+  return route.query.photo || ''
+})
 
 const truncatedBio = computed(() => {
   const bio = person.value?.biography || ''
@@ -100,6 +113,19 @@ const truncatedBio = computed(() => {
 })
 
 usePageMeta(personName)
+
+function mapIndexedCredits(items) {
+  return items.map((item) => ({
+    key: `local-${item.slug}`,
+    id: item.slug,
+    title: item.name,
+    character: '',
+    year: item.year,
+    mediaType: 'movie',
+    poster: item.poster,
+    to: { path: `/phim/${item.slug}` },
+  }))
+}
 
 async function resolveCreditLinks(rawCredits) {
   const resolved = []
@@ -115,6 +141,7 @@ async function resolveCreditLinks(rawCredits) {
     }
 
     resolved.push({
+      key: `tmdb-${credit.id}`,
       ...credit,
       poster: buildPosterUrl(credit.posterPath),
       to: slug ? { path: `/phim/${slug}` } : null,
@@ -124,26 +151,47 @@ async function resolveCreditLinks(rawCredits) {
   return resolved
 }
 
+function mergeCredits(indexed, tmdbCredits) {
+  const merged = [...indexed]
+  const slugSet = new Set(indexed.map((item) => item.to?.path).filter(Boolean))
+
+  for (const credit of tmdbCredits) {
+    const path = credit.to?.path
+    if (path && slugSet.has(path)) continue
+    merged.push(credit)
+    if (path) slugSet.add(path)
+  }
+
+  return merged
+}
+
 async function loadPerson() {
   loading.value = true
-  error.value = ''
+  notice.value = ''
   person.value = null
   credits.value = []
 
+  const actorId = route.params.tmdbId
+  const indexed = mapIndexedCredits(getIndexedMoviesForActor(actorId))
+  let tmdbCredits = []
+
   try {
-    const data = await fetchTmdbPerson(axios, route.params.tmdbId)
+    const data = await fetchTmdbPerson(axios, actorId)
     person.value = data
     const mapped = mapCombinedCredits(data)
-    credits.value = await resolveCreditLinks(mapped)
+    tmdbCredits = await resolveCreditLinks(mapped)
   } catch (err) {
-    if (err.response?.status === 503) {
-      error.value = 'Chưa cấu hình TMDB API. Thêm TMDB_API_KEY vào biến môi trường server.'
+    if (indexed.length) {
+      notice.value = 'Đang hiển thị phim đã ghi nhận trên MangaMix. Filmography đầy đủ cần cấu hình TMDB API.'
+    } else if (err.response?.status === 503) {
+      notice.value = 'Chưa cấu hình TMDB API. Thêm TMDB_API_KEY vào biến môi trường server hoặc VITE_TMDB_API_KEY cho client.'
     } else {
-      error.value = 'Không thể tải thông tin diễn viên.'
+      notice.value = 'Không thể tải filmography đầy đủ từ TMDB.'
     }
-  } finally {
-    loading.value = false
   }
+
+  credits.value = mergeCredits(indexed, tmdbCredits)
+  loading.value = false
 }
 
 watch(() => route.params.tmdbId, loadPerson)
@@ -209,6 +257,21 @@ onMounted(loadPerson)
 
 .actor-body {
   padding-top: 28px;
+}
+
+.notice {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.notice code {
+  font-size: 0.8125rem;
 }
 
 .info-block h2 {
@@ -302,6 +365,11 @@ onMounted(loadPerson)
   padding: 24px;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
+  line-height: 1.6;
+}
+
+.empty-state code {
+  font-size: 0.8125rem;
 }
 
 @media (max-width: 640px) {
