@@ -1,5 +1,5 @@
 <template>
-  <div class="category-bar">
+  <div class="category-bar thin-scrollbar">
     <button
       class="cat-chip"
       :class="{ active: !modelValue }"
@@ -43,27 +43,6 @@ function pick(value) {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 4px 0 12px;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-
-.category-bar::-webkit-scrollbar {
-  height: 6px;
-}
-
-.category-bar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.category-bar::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 999px;
-}
-
-.category-bar::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
 }
 
 .cat-chip {

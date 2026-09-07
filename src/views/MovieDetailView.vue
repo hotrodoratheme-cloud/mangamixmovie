@@ -84,7 +84,7 @@
       <div class="container detail-body">
         <section v-if="cast.length" class="info-block">
           <h2>Diễn viên</h2>
-          <div class="cast-row">
+          <div class="cast-row thin-scrollbar">
             <ActorCard
               v-for="(person, index) in cast"
               :key="person.id"
@@ -645,8 +645,8 @@ onBeforeUnmount(cleanup)
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding-bottom: 6px;
-  scrollbar-width: thin;
+  overflow-y: hidden;
+  padding: 4px 0 12px;
 }
 
 .detail-body {
