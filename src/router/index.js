@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { setPageTitle } from '@/composables/usePageMeta'
+import { ACTOR_FILMOGRAPHY_ENABLED } from '@/config/features'
 
 const routes = [
   {
@@ -20,12 +21,16 @@ const routes = [
         meta: { backTo: '/phim' },
         component: () => import('@/views/MovieCategoryView.vue'),
       },
-      {
-        path: 'phim/dien-vien/:tmdbId',
-        name: 'actor-filmography',
-        meta: { backTo: '/phim', title: 'Diễn viên' },
-        component: () => import('@/views/ActorFilmographyView.vue'),
-      },
+      ...(ACTOR_FILMOGRAPHY_ENABLED
+        ? [
+            {
+              path: 'phim/dien-vien/:tmdbId',
+              name: 'actor-filmography',
+              meta: { backTo: '/phim', title: 'Diễn viên' },
+              component: () => import('@/views/ActorFilmographyView.vue'),
+            },
+          ]
+        : []),
       {
         path: 'phim/:slug',
         name: 'movie-detail',

@@ -70,7 +70,7 @@
       </section>
 
       <div class="container detail-body">
-        <section v-if="cast.length" class="info-block">
+        <section v-if="ACTOR_FILMOGRAPHY_ENABLED && cast.length" class="info-block">
           <h2>Diễn viên</h2>
           <div class="cast-row thin-scrollbar">
             <ActorCard
@@ -148,6 +148,7 @@ import {
 } from '@/utils/movieAudio'
 import { fetchMovieCast } from '@/utils/moviePeople'
 import { indexMovieForCast } from '@/services/actorIndex'
+import { ACTOR_FILMOGRAPHY_ENABLED } from '@/config/features'
 
 import { useNavBack } from '@/composables/useNavBack'
 
@@ -260,10 +261,14 @@ async function fetchMovie() {
   cast.value = []
 
   try {
-    const [detailRes, castList] = await Promise.all([
+    const requests = [
       axios.get(movieApi.detail(route.params.slug), { timeout: 15000 }),
-      fetchMovieCast(axios, route.params.slug).catch(() => []),
-    ])
+    ]
+    if (ACTOR_FILMOGRAPHY_ENABLED) {
+      requests.push(fetchMovieCast(axios, route.params.slug).catch(() => []))
+    }
+
+    const [detailRes, castList = []] = await Promise.all(requests)
 
     const { data } = detailRes
     if (seq !== fetchSeq) return
@@ -285,15 +290,17 @@ async function fetchMovie() {
         data.movie.thumb_url || data.movie.poster_url
       ),
     }
-    indexMovieForCast(
-      castList.map((person) => person.id),
-      {
-        slug: route.params.slug,
-        name: data.movie.name,
-        poster: movie.value.poster,
-        year: data.movie.year,
-      }
-    )
+    if (ACTOR_FILMOGRAPHY_ENABLED) {
+      indexMovieForCast(
+        castList.map((person) => person.id),
+        {
+          slug: route.params.slug,
+          name: data.movie.name,
+          poster: movie.value.poster,
+          year: data.movie.year,
+        }
+      )
+    }
     servers.value = data.episodes || []
     selectedServerIndex.value = defaultAudioServerIndex(servers.value)
     episodes.value = servers.value[selectedServerIndex.value]?.server_data || []
