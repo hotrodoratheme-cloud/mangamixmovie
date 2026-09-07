@@ -4,6 +4,7 @@ import {
   buildAudioOptions,
   hasMultipleAudioVersions,
   defaultAudioServerIndex,
+  findEpisodeBySlug,
 } from './movieAudio.js'
 
 describe('movieAudio', () => {
@@ -22,5 +23,21 @@ describe('movieAudio', () => {
   it('ưu tiên Vietsub làm mặc định', () => {
     const servers = [{ server_name: 'Thuyết Minh' }, { server_name: 'Vietsub' }]
     expect(defaultAudioServerIndex(servers)).toBe(1)
+  })
+
+  it('tìm tập theo slug khi đổi server audio', () => {
+    const servers = [
+      {
+        server_name: 'Vietsub',
+        server_data: [{ slug: 'tap-01', link_m3u8: 'https://example.com/vs.m3u8' }],
+      },
+      {
+        server_name: 'Thuyết Minh',
+        server_data: [{ slug: 'tap-01', link_m3u8: 'https://example.com/tm.m3u8' }],
+      },
+    ]
+
+    const matched = findEpisodeBySlug(servers, 1, 'tap-01')
+    expect(matched?.link_m3u8).toBe('https://example.com/tm.m3u8')
   })
 })

@@ -484,8 +484,16 @@ function loadVideo(ep) {
   trySource(0)
 }
 
+function isSamePlayableEpisode(current, next) {
+  if (!current || !next) return false
+  if (current.slug !== next.slug) return false
+  const currentLink = current.link_m3u8 || current.link_embed || ''
+  const nextLink = next.link_m3u8 || next.link_embed || ''
+  return currentLink === nextLink
+}
+
 function selectEpisode(ep, updateRouteFlag = true) {
-  if (currentEpisode.value?.slug === ep.slug) {
+  if (isSamePlayableEpisode(currentEpisode.value, ep)) {
     scrollToPlayer()
     return
   }
